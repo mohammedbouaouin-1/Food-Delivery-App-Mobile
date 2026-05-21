@@ -72,113 +72,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final user = authProvider.user;
     final userData = await authProvider.getUserData();
     
-    final nameController = TextEditingController(
-      text: user?.displayName ?? userData?['name'] ?? '',
-    );
-    final phoneController = TextEditingController(
-      text: userData?['phone'] ?? '',
-    );
-    final formKey = GlobalKey<FormState>();
+    final initialName = user?.displayName ?? userData?['name'] ?? '';
+    final initialPhone = userData?['phone'] ?? '';
 
     if (!context.mounted) return;
 
-    await showDialog(
+    final result = await showDialog<bool>(
       context: context,
+      barrierDismissible: true,
       builder: (dialogContext) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(Icons.edit, color: Colors.brown),
-              SizedBox(width: 10),
-              Text('Modifier le profil'),
-            ],
-          ),
-          content: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: nameController,
-                  validator: Validators.validateName,
-                  decoration: InputDecoration(
-                    labelText: 'Nom complet',
-                    prefixIcon: const Icon(Icons.person),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: phoneController,
-                  validator: Validators.validatePhone,
-                  decoration: InputDecoration(
-                    labelText: 'Téléphone',
-                    hintText: '0612345678',
-                    prefixIcon: const Icon(Icons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  keyboardType: TextInputType.phone,
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Annuler'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (formKey.currentState?.validate() ?? false) {
-                  final success = await authProvider.updateUserProfile(
-                    name: nameController.text.isNotEmpty ? nameController.text.trim() : null,
-                    phone: phoneController.text.isNotEmpty ? phoneController.text.trim() : null,
-                  );
-                  
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          success
-                              ? '✅ Profil mis à jour avec succès'
-                              : '❌ Erreur lors de la mise à jour',
-                        ),
-                        backgroundColor: success ? Colors.green : Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.brown[700],
-              ),
-              child: const Text(
-                'Enregistrer',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+        return _EditProfileDialog(
+          authProvider: authProvider,
+          initialName: initialName,
+          initialPhone: initialPhone,
         );
       },
     );
 
-    nameController.dispose();
-    phoneController.dispose();
+    if (result == true && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('✅ Profil mis à jour avec succès'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } else if (result == false && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('❌ Erreur lors de la mise à jour'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -733,6 +666,127 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
       },
+    );
+  }
+}
+
+class _EditProfileDialog extends StatefulWidget {
+  final AuthProvider authProvider;
+  final String initialName;
+  final String initialPhone;
+
+  const _EditProfileDialog({
+    required this.authProvider,
+    required this.initialName,
+    required this.initialPhone,
+  });
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  final _formKey = GlobalKey<FormState>();
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.initialName);
+    _phoneController = TextEditingController(text: widget.initialPhone);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      title: const Row(
+        children: [
+          Icon(Icons.edit, color: Colors.brown),
+          SizedBox(width: 10),
+          Text('Modifier le profil'),
+        ],
+      ),
+      content: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextFormField(
+              controller: _nameController,
+              validator: Validators.validateName,
+              decoration: InputDecoration(
+                labelText: 'Nom complet',
+                prefixIcon: const Icon(Icons.person),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _phoneController,
+              validator: Validators.validatePhone,
+              decoration: InputDecoration(
+                labelText: 'Téléphone',
+                hintText: '0612345678',
+                prefixIcon: const Icon(Icons.phone),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              keyboardType: TextInputType.phone,
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+          child: const Text('Annuler'),
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : () async {
+            if (_formKey.currentState?.validate() ?? false) {
+              setState(() => _isSaving = true);
+              final success = await widget.authProvider.updateUserProfile(
+                name: _nameController.text.isNotEmpty ? _nameController.text.trim() : null,
+                phone: _phoneController.text.isNotEmpty ? _phoneController.text.trim() : null,
+              );
+              if (context.mounted) {
+                Navigator.of(context).pop(success);
+              }
+            }
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.brown[700],
+          ),
+          child: _isSaving
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text(
+                  'Enregistrer',
+                  style: TextStyle(color: Colors.white),
+                ),
+        ),
+      ],
     );
   }
 }
