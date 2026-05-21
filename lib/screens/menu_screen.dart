@@ -1,7 +1,15 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:shimmer/shimmer.dart';
 import '../providers/cart_provider.dart';
+import '../providers/favorites_provider.dart';
 import '../models/food_item.dart';
+import '../data/menu_data.dart';
+import '../data/app_constants.dart';
+import 'food_detail_screen.dart';
+import 'food_search_delegate.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -13,8 +21,8 @@ class MenuScreen extends StatefulWidget {
 class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   String _selectedCategory = 'Pizza';
-  final String _searchQuery = '';
   late AnimationController _fabAnimationController;
+  late PageController _promoPageController;
   bool _showFab = false;
 
   final Map<String, GlobalKey> _categoryKeys = {
@@ -31,6 +39,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    _promoPageController = PageController(viewportFraction: 0.9);
     
     _scrollController.addListener(() {
       if (_scrollController.offset > 200 && !_showFab) {
@@ -60,274 +69,28 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
   void dispose() {
     _scrollController.dispose();
     _fabAnimationController.dispose();
+    _promoPageController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final cartProvider = Provider.of<CartProvider>(context);
-
-    final List<FoodItem> pizzas = [
-      FoodItem(
-        id: '1',
-        name: 'Pizza Pepperoni',
-        price: 45.0,
-        image: 'images/peperoni.jpeg',
-        description: 'Une pizza généreuse avec sauce tomate parfumée, mozzarella fondante et tranches de pepperoni grillées à la perfection. Chaque bouchée est un mélange de saveurs relevées et gourmandes, idéale pour les amateurs de goût intense.',
-        category: 'Pizza',
-        preparationTime: 15,
-        rating: 4.7,
-        reviewCount: 128,
-        calories: 285,
-        isSpicy: true,
-      ),
-      FoodItem(
-        id: '2',
-        name: 'Pizza 4 Fromages',
-        price: 55.0,
-        image: 'images/pizza-Quatre-fromages.webp',
-        description: 'Une combinaison crémeuse de mozzarella, emmental, parmesan et bleu, fondue sur une pâte croustillante. Une expérience fromagère riche et onctueuse qui ravira les palais des amateurs de fromage.',
-        category: 'Pizza',
-        preparationTime: 18,
-        rating: 4.8,
-        reviewCount: 95,
-        calories: 320,
-        isVegetarian: true,
-      ),
-      FoodItem(
-        id: '3',
-        name: 'Pizza Margherita',
-        price: 40.0,
-        image: 'images/pizza-Margarita.webp',
-        description: 'La classique Margherita avec sa sauce tomate délicate, mozzarella fondante et basilic frais. Une pizza simple mais élégante qui capture l’essence de l’Italie à chaque bouchée.',
-        category: 'Pizza',
-        preparationTime: 12,
-        rating: 4.6,
-        reviewCount: 156,
-        calories: 250,
-        isVegetarian: true,
-      ),
-      FoodItem(
-        id: '4',
-        name: 'Pizza 4 Saisons',
-        price: 60.0,
-        image: 'images/pizza-quatre-saisons.jpg',
-        description: 'Une pizza riche et équilibrée avec jambon, champignons, olives et artichauts, chaque portion apportant une combinaison parfaite de textures et de saveurs qui change à chaque bouchée.',
-        category: 'Pizza',
-        preparationTime: 20,
-        rating: 4.5,
-        reviewCount: 87,
-        calories: 295,
-      ),
-      FoodItem(
-        id: '5',
-        name: 'Pizza Fruits de Mer',
-        price: 65.0,
-        image: 'images/pizza-aux-fruits-de-mer.jpg',
-        description: 'Une explosion de saveurs marines avec crevettes, calamars et poisson frais sur une base parfaitement cuite. Idéale pour les amoureux de fruits de mer à la recherche d’un goût authentique et savoureux.',
-        category: 'Pizza',
-        preparationTime: 22,
-        rating: 4.9,
-        reviewCount: 73,
-        calories: 270,
-      ),
-    ];
-
-    final List<FoodItem> tacos = [
-      FoodItem(
-        id: '6',
-        name: 'Tacos Poulet',
-        price: 30.0,
-        image: 'images/tacos-de-poulet.jpeg',
-        description: 'Tacos généreux avec poulet tendre, frites croustillantes et fromage fondant, accompagnés de sauces au choix. Un en-cas gourmand et réconfortant qui séduira tous les appétits.',
-        category: 'Tacos',
-        preparationTime: 10,
-        rating: 4.6,
-        reviewCount: 142,
-        calories: 450,
-      ),
-      FoodItem(
-        id: '7',
-        name: 'Tacos Viande Hachée',
-        price: 30.0,
-        image: 'images/tacos-viande-hachee.webp',
-        description: 'Viande hachée épicée, frites et fromage fondant, enveloppés dans une galette chaude. Une expérience riche et savoureuse pour les amateurs de plats relevés.',
-        category: 'Tacos',
-        preparationTime: 10,
-        rating: 4.5,
-        reviewCount: 98,
-        calories: 480,
-        isSpicy: true,
-      ),
-      FoodItem(
-        id: '8',
-        name: 'Tacos Mixte',
-        price: 35.0,
-        image: 'images/tacos-mixte.webp',
-        description: 'Le meilleur des deux mondes : poulet et viande hachée, frites et fromage fondant dans une galette parfaitement chaude. Une bouchée équilibrée et savoureuse qui combine textures et goûts.',
-        category: 'Tacos',
-        preparationTime: 12,
-        rating: 4.8,
-        reviewCount: 165,
-        calories: 520,
-        isSpicy: true,
-      ),
-    ];
-
-    final List<FoodItem> salades = [
-      FoodItem(
-        id: '9',
-        name: 'Salade Marocaine aux Aubergines',
-        price: 15.0,
-        image: 'images/salade aubergine.jpeg',
-        description: 'Aubergines fondantes mélangées à des épices douces et un filet d’huile d’olive. Une salade légère, savoureuse et authentique qui évoque les saveurs traditionnelles marocaines.',
-        category: 'Salades',
-        preparationTime: 8,
-        rating: 4.4,
-        reviewCount: 56,
-        calories: 120,
-        isVegetarian: true,
-      ),
-      FoodItem(
-        id: '10',
-        name: 'Salade Concombre et Tomates',
-        price: 15.0,
-        image: 'images/concombre tomate.jpeg',
-        description: 'Salade fraîche et croquante avec concombre et tomates, assaisonnée d’un filet de citron. Idéale pour accompagner vos plats principaux ou pour un déjeuner léger et rafraîchissant.',
-        category: 'Salades',
-        preparationTime: 5,
-        rating: 4.3,
-        reviewCount: 78,
-        calories: 80,
-        isVegetarian: true,
-      ),
-      FoodItem(
-        id: '11',
-        name: 'Salade Marocaine aux Carottes',
-        price: 15.0,
-        image: 'images/carrote.jpg',
-        description: 'Carottes fondantes avec une touche de coriandre fraîche et d’épices douces. Une salade simple mais savoureuse, pleine de couleur et de fraîcheur.',
-        category: 'Salades',
-        preparationTime: 7,
-        rating: 4.5,
-        reviewCount: 92,
-        calories: 100,
-        isVegetarian: true,
-      ),
-      FoodItem(
-        id: '12',
-        name: 'Salade de Pommes de Terre',
-        price: 15.0,
-        image: 'images/pomme de terre.jpeg',
-        description: 'Pommes de terre onctueuses accompagnées d’oignons et d’herbes fraîches. Une salade douce et réconfortante, parfaite pour compléter un repas copieux.',
-        category: 'Salades',
-        preparationTime: 10,
-        rating: 4.2,
-        reviewCount: 64,
-        calories: 180,
-        isVegetarian: true,
-      ),
-    ];
-
-    final List<FoodItem> boissons = [
-      FoodItem(
-        id: '13',
-        name: 'Coca-Cola',
-        price: 6.0,
-        image: 'images/coca-cola.jpg',
-        description: 'La boisson iconique aux bulles pétillantes et au goût inimitable. Servie bien fraîche avec des glaçons, elle accompagne parfaitement votre repas pour une sensation de pure rafraîchissement à chaque gorgée.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.6,
-        reviewCount: 245,
-        calories: 139,
-      ),
-      FoodItem(
-        id: '14',
-        name: 'Coca-Cola Zéro',
-        price: 6.0,
-        image: 'images/coca-zero.jpg',
-        description: 'Savourez le goût classique du Coca-Cola sans aucune calorie. Une alternative légère et rafraîchissante, idéale pour profiter pleinement de votre repas sans compromis sur le goût.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.5,
-        reviewCount: 198,
-        calories: 0,
-      ),
-      FoodItem(
-        id: '15',
-        name: 'Fanta Orange',
-        price: 5.0,
-        image: 'images/fanta.jpg',
-        description: 'Explosion de saveur fruitée ! Cette boisson pétillante à l’orange apporte une touche de douceur et de fraîcheur à votre repas. Les bulles légères et le goût fruité séduiront petits et grands.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.4,
-        reviewCount: 167,
-        calories: 145,
-      ),
-      FoodItem(
-        id: '16',
-        name: 'Sprite',
-        price: 6.0,
-        image: 'images/sprite.jpg',
-        description: 'Fraîcheur ultime avec cette boisson citron-lime pétillante. Désaltère instantanément et nettoie le palais entre chaque bouchée savoureuse, parfaite pour vos repas gourmands.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.5,
-        reviewCount: 189,
-        calories: 142,
-      ),
-      FoodItem(
-        id: '17',
-        name: 'Eau Minirale ( Sidi Ali )',
-        price: 4.0,
-        image: 'images/eau-minerale.jpg',
-        description: 'Pure et naturelle, cette eau minérale provient de sources protégées et hydrate parfaitement vos plats sans en altérer les saveurs. Riche en minéraux essentiels, c’est le choix santé par excellence.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.7,
-        reviewCount: 312,
-        calories: 0,
-      ),
-      FoodItem(
-        id: '18',
-        name: 'Jus d\'Orange Frais',
-        price: 8.0,
-        image: 'images/jus-orange.webp',
-        description: 'Oranges pressées à la minute pour conserver toute la fraîcheur et les vitamines. 100% pur jus, sans sucre ajouté, un goût naturellement sucré et acidulé pour une boisson vitaminée et revitalisante.',
-        category: 'Boissons',
-        preparationTime: 3,
-        rating: 4.9,
-        reviewCount: 276,
-        calories: 110,
-      ),
-      FoodItem(
-        id: '20',
-        name: 'Thé Glacé Pêche',
-        price: 9.0,
-        image: 'images/ice-tea.webp',
-        description: 'Thé infusé délicat associé à la douceur veloutée de la pêche. Servi glacé avec une pointe de citron, il désaltère tout en ajoutant une touche fruitée à votre repas.',
-        category: 'Boissons',
-        preparationTime: 1,
-        rating: 4.3,
-        reviewCount: 156,
-        calories: 120,
-      ),
-    ];
-
-    final allItems = [...pizzas, ...tacos, ...salades, ...boissons];
-    final filteredItems = _searchQuery.isEmpty
-        ? allItems
-        : allItems.where((item) =>
-            item.name.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[50],
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.brown[700],
+        backgroundColor: (isDark ? const Color(0xFF1E1E1E) : Colors.brown[700]!).withValues(alpha: 0.8),
         foregroundColor: Colors.white,
         elevation: 0,
+        flexibleSpace: ClipRRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(color: Colors.transparent),
+          ),
+        ),
         title: const Text('Menu', style: TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
@@ -335,39 +98,92 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             onPressed: () {
               showSearch(
                 context: context,
-                delegate: FoodSearchDelegate(allItems, cartProvider),
+                delegate: FoodSearchDelegate(MenuData.allItems, cartProvider),
               );
             },
           ),
         ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Row(
+              children: MenuData.categories.map((cat) {
+                final isLast = cat == MenuData.categories.last;
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: isLast ? 0 : 6),
+                    child: _buildCategoryTab(cat['label']!, cat['key']!, isDark),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
       ),
       body: Column(
         children: [
-          Container(
-            color: Colors.brown[700],
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Row(
-              children: [
-                Expanded(child: _buildCategoryTab('🍕 Pizza', 'Pizza')),
-                const SizedBox(width: 6),
-                Expanded(child: _buildCategoryTab('🌮 Tacos', 'Tacos')),
-                const SizedBox(width: 6),
-                Expanded(child: _buildCategoryTab('🥗 Salades', 'Salades')),
-                const SizedBox(width: 6),
-                Expanded(child: _buildCategoryTab('🥤 Boissons', 'Boissons')),
-              ],
-            ),
-          ),
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
               child: Column(
                 children: [
-                  _buildCategorySection('Nos Pizzas', pizzas, 'Pizza'),
-                  _buildCategorySection('Nos Tacos', tacos, 'Tacos'),
-                  _buildCategorySection('Nos Salades', salades, 'Salades'),
-                  _buildCategorySection('Nos Boissons', boissons, 'Boissons'),
-                  const SizedBox(height: 80),
+                  SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight + 60), // Add padding for the AppBar
+                  
+                  // Search Bar Explicite
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: GestureDetector(
+                      onTap: () {
+                        showSearch(
+                          context: context,
+                          delegate: FoodSearchDelegate(MenuData.allItems, cartProvider),
+                        );
+                      },
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF3E3E3E) : Colors.grey[200]!,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: Colors.grey[500]),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Que voulez-vous manger ?',
+                              style: TextStyle(
+                                color: Colors.grey[500],
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                  ),
+                  
+                  // #7 — Note globale du restaurant
+                  _buildGlobalRating(isDark),
+
+                  // #25 — Bannières promotionnelles
+                  _buildPromoBanners(isDark),
+                  _buildCategorySection('Nos Pizzas', MenuData.pizzas, 'Pizza', isDark),
+                  _buildCategorySection('Nos Tacos', MenuData.tacos, 'Tacos', isDark),
+                  _buildCategorySection('Nos Salades', MenuData.salades, 'Salades', isDark),
+                  _buildCategorySection('Nos Boissons', MenuData.boissons, 'Boissons', isDark),
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
@@ -389,7 +205,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildCategoryTab(String label, String category) {
+  Widget _buildCategoryTab(String label, String category, bool isDark) {
     final isSelected = _selectedCategory == category;
     return GestureDetector(
       onTap: () => _scrollToCategory(category),
@@ -397,10 +213,12 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? Colors.white : Colors.brown[600],
+          color: isSelected
+              ? Colors.white
+              : (isDark ? Colors.brown[800] : Colors.brown[600]),
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected
-              ? [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)]
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
               : null,
         ),
         child: Center(
@@ -417,10 +235,10 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildCategorySection(String title, List<FoodItem> items, String category) {
+  Widget _buildCategorySection(String title, List<FoodItem> items, String category, bool isDark) {
     return Container(
       key: _categoryKeys[category],
-      color: Colors.white,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
       padding: const EdgeInsets.all(16),
       margin: const EdgeInsets.only(bottom: 8),
       child: Column(
@@ -439,402 +257,586 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          ...items.map((item) => _buildFoodCard(context, item)),
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            return _buildFoodCard(context, item, isDark)
+                .animate()
+                .fadeIn(
+                  duration: 400.ms,
+                  delay: (100 * index).ms,
+                )
+                .slideX(
+                  begin: 0.05,
+                  end: 0,
+                  duration: 400.ms,
+                  delay: (100 * index).ms,
+                  curve: Curves.easeOut,
+                );
+          }),
         ],
       ),
     );
   }
 
-  Widget _buildFoodCard(BuildContext context, FoodItem foodItem) {
-    final cartProvider = Provider.of<CartProvider>(context);
-    final isInCart = cartProvider.isInCart(foodItem.id);
-    final quantity = cartProvider.getItemQuantity(foodItem.id);
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
+  Widget _buildFoodCard(BuildContext context, FoodItem foodItem, bool isDark) {
+    return GestureDetector(
+      onTap: () {
+        // #8 — Transition slide-up
+        Navigator.push(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) =>
+                FoodDetailScreen(foodItem: foodItem),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              return SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                child: FadeTransition(opacity: animation, child: child),
+              );
+            },
+            transitionDuration: const Duration(milliseconds: 350),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Stack(
-            children: [
-
-              //  clic sur image
-              GestureDetector(
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => Dialog(
-                      backgroundColor: Colors.transparent,
-                      child: InteractiveViewer(
-                        child: Image.asset(
-                          foodItem.image,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2A2A) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.3)
+                  : Colors.grey.shade200,
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                // Image avec Hero + Shimmer loading (#22)
+                Hero(
+                  tag: 'food_image_${foodItem.id}',
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
                     ),
-                  );
-                },
-                child: ClipRRect(
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                  child: Image.asset(
-                    foodItem.image,
-                    width: double.infinity,
-                    height: 200,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.access_time, color: Colors.white, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${foodItem.preparationTime} min',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                    child: Image.asset(
+                      foodItem.image,
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.cover,
+                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                        if (wasSynchronouslyLoaded) return child;
+                        return AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: frame != null
+                              ? child
+                              : Shimmer.fromColors(
+                                  baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                                  highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+                                  child: Container(
+                                    width: double.infinity,
+                                    height: 200,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                        );
+                      },
+                    ),
                   ),
                 ),
-              ),
 
-              if (foodItem.badges.isNotEmpty)
+                // Temps de préparation
                 Positioned(
                   top: 12,
-                  right: 12,
-                  child: Column(
-                    children: foodItem.badges.map((badge) {
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.95),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          badge,
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ),
-            ],
-          ),
-          
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        foodItem.name,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    Row(
+                    child: Row(
                       children: [
-                        const Icon(Icons.star, color: Colors.amber, size: 18),
+                        const Icon(Icons.access_time, color: Colors.white, size: 14),
                         const SizedBox(width: 4),
                         Text(
-                          foodItem.rating.toString(),
+                          '${foodItem.preparationTime} min',
                           style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        Text(
-                          ' (${foodItem.reviewCount})',
-                          style: TextStyle(
-                            color: Colors.grey[600],
+                            color: Colors.white,
                             fontSize: 12,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
-                
-                const SizedBox(height: 10),
-                
-                Text(
-                  foodItem.description,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                    height: 1.5,
                   ),
-                  textAlign: TextAlign.justify,
-                  maxLines: 6,
-                  overflow: TextOverflow.ellipsis,
                 ),
-                
-                const SizedBox(height: 12),
-                
-                Row(
-                  children: [
-                    Icon(Icons.local_fire_department, 
-                         color: Colors.orange[700], size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${foodItem.calories} cal',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
+
+                // Bouton favori
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Consumer<FavoritesProvider>(
+                    builder: (context, favoritesProvider, child) {
+                      final isFavorite = favoritesProvider.isFavorite(foodItem.id);
+                      return GestureDetector(
+                        onTap: () {
+                          favoritesProvider.toggleFavorite(foodItem.id);
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 4,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: isFavorite ? Colors.red : Colors.grey[600],
+                            size: 20,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
                 ),
-                
-                const SizedBox(height: 16),
-                
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      foodItem.formattedPrice,
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.red[600],
-                      ),
+
+                // Badges
+                if (foodItem.badges.isNotEmpty)
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    child: Row(
+                      children: foodItem.badges.map((badge) {
+                        return Container(
+                          margin: const EdgeInsets.only(right: 6),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            badge,
+                            style: const TextStyle(fontSize: 11),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                    
-                    isInCart
-                        ? Container(
-                            decoration: BoxDecoration(
-                              color: Colors.brown[700],
-                              borderRadius: BorderRadius.circular(12),
+                  ),
+              ],
+            ),
+            
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          foodItem.name,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          const Icon(Icons.star, color: Colors.amber, size: 18),
+                          const SizedBox(width: 4),
+                          Text(
+                            foodItem.rating.toString(),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
-                            child: Row(
-                              children: [
-                                IconButton(
-                                  onPressed: () {
-                                    cartProvider.decreaseQuantity(foodItem.id);
-                                  },
-                                  icon: const Icon(Icons.remove, color: Colors.white),
-                                  iconSize: 20,
-                                  padding: const EdgeInsets.all(8),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 36,
-                                    minHeight: 36,
-                                  ),
-                                ),
-                                
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  child: Text(
-                                    quantity.toString(),
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                
-                                IconButton(
-                                  onPressed: () {
-                                    cartProvider.increaseQuantity(foodItem.id);
-                                  },
-                                  icon: const Icon(Icons.add, color: Colors.white),
-                                  iconSize: 20,
-                                  padding: const EdgeInsets.all(8),
-                                  constraints: const BoxConstraints(
-                                    minWidth: 36,
-                                    minHeight: 36,
-                                  ),
-                                ),
-                              ],
+                          ),
+                          Text(
+                            ' (${foodItem.reviewCount})',
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
                             ),
-                          )
-                        : ElevatedButton.icon(
-                            onPressed: () {
-                              cartProvider.addItem(foodItem);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Row(
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 10),
+                  
+                  Text(
+                    foodItem.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[400] : Colors.grey[700],
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.justify,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  Row(
+                    children: [
+                      Icon(Icons.local_fire_department, 
+                           color: Colors.orange[700], size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${foodItem.calories} cal',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        foodItem.formattedPrice,
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red[600],
+                        ),
+                      ),
+                      
+                      Consumer<CartProvider>(
+                        builder: (context, cartProvider, child) {
+                          final isInCart = cartProvider.isInCart(foodItem.id);
+                          final quantity = cartProvider.getItemQuantity(foodItem.id);
+                          return isInCart
+                              ? Container(
+                                  decoration: BoxDecoration(
+                                    color: Colors.brown[700],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
                                     children: [
-                                      const Icon(Icons.check_circle, 
-                                           color: Colors.white),
-                                      const SizedBox(width: 8),
-                                      Expanded(
+                                      IconButton(
+                                        onPressed: () {
+                                          cartProvider.decreaseQuantity(foodItem.id);
+                                        },
+                                        icon: const Icon(Icons.remove, color: Colors.white),
+                                        iconSize: 20,
+                                        padding: const EdgeInsets.all(8),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 36,
+                                          minHeight: 36,
+                                        ),
+                                      ),
+                                      
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 12),
                                         child: Text(
-                                          '${foodItem.name} ajouté au panier',
+                                          quantity.toString(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                      
+                                      IconButton(
+                                        onPressed: () {
+                                          cartProvider.increaseQuantity(foodItem.id);
+                                        },
+                                        icon: const Icon(Icons.add, color: Colors.white),
+                                        iconSize: 20,
+                                        padding: const EdgeInsets.all(8),
+                                        constraints: const BoxConstraints(
+                                          minWidth: 36,
+                                          minHeight: 36,
                                         ),
                                       ),
                                     ],
                                   ),
-                                  duration: const Duration(milliseconds: 1500),
-                                  backgroundColor: Colors.green,
-                                  behavior: SnackBarBehavior.floating,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+                                )
+                              : ElevatedButton.icon(
+                                  onPressed: () {
+                                    cartProvider.addItem(foodItem);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Row(
+                                          children: [
+                                            const Icon(Icons.check_circle, 
+                                                 color: Colors.white),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                '${foodItem.name} ajouté au panier',
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        duration: const Duration(milliseconds: 1500),
+                                        backgroundColor: Colors.green,
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_shopping_cart, size: 18),
+                                  label: const Text(
+                                    'Ajouter',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            icon: const Icon(Icons.add_shopping_cart, size: 18),
-                            label: const Text(
-                              'Ajouter',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.brown[700],
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                          ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-//  recherche
-class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
-  final List<FoodItem> items;
-  final CartProvider cartProvider;
-
-  FoodSearchDelegate(this.items, this.cartProvider);
-
-  @override
-  String get searchFieldLabel => 'Rechercher un plat...';
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [
-      IconButton(
-        icon: const Icon(Icons.clear),
-        onPressed: () => query = '',
-      ),
-    ];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.arrow_back),
-      onPressed: () => close(context, null),
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    final results = items
-        .where((item) => item.name.toLowerCase().contains(query.toLowerCase()))
-        .toList();
-
-    return _buildResultsList(results);
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    final suggestions = query.isEmpty
-        ? items
-        : items
-            .where((item) => item.name.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-
-    return _buildResultsList(suggestions);
-  }
-
-  Widget _buildResultsList(List<FoodItem> items) {
-    if (items.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.search_off, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Aucun résultat trouvé',
-              style: TextStyle(fontSize: 18, color: Colors.grey),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.brown[700],
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                );
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return ListView.builder(
-      itemCount: items.length,
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return ListTile(
-          leading: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              item.image,
-              width: 60,
-              height: 60,
-              fit: BoxFit.cover,
-            ),
+  // #7 — Note globale du restaurant
+  Widget _buildGlobalRating(bool isDark) {
+    // Calculer la note moyenne globale
+    final allItems = MenuData.allItems;
+    final avgRating = allItems.fold(0.0, (sum, item) => sum + item.rating) / allItems.length;
+    final totalReviews = allItems.fold(0, (sum, item) => sum + item.reviewCount);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isDark ? const Color(0xFF3E3E3E) : Colors.amber.withValues(alpha: 0.3),
           ),
-          title: Text(item.name),
-          subtitle: Text(item.formattedPrice),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-          onTap: () {
-            close(context, item);
-          },
-        );
+          boxShadow: [
+            BoxShadow(
+              color: Colors.amber.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.amber.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.star_rounded, color: Colors.amber, size: 26),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        avgRating.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      ...List.generate(5, (index) {
+                        if (index < avgRating.floor()) {
+                          return const Icon(Icons.star, color: Colors.amber, size: 16);
+                        } else if (index < avgRating.ceil() && avgRating % 1 > 0.3) {
+                          return const Icon(Icons.star_half, color: Colors.amber, size: 16);
+                        }
+                        return Icon(Icons.star_border, color: Colors.grey[400], size: 16);
+                      }),
+                    ],
+                  ),
+                  Text(
+                    '$totalReviews avis clients',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isDark ? Colors.grey[500] : Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                AppConstants.ratingLabel(avgRating),
+                style: const TextStyle(
+                  color: Colors.green,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
+  }
+
+  // #25 — Bannières promotionnelles
+  Widget _buildPromoBanners(bool isDark) {
+    final banners = [
+      {
+        'title': '🔥 -20% sur les Pizzas',
+        'subtitle': 'Offre limitée ce week-end',
+        'gradient': [const Color(0xFFE53935), const Color(0xFFFF7043)],
+        'icon': Icons.local_pizza,
       },
+      {
+        'title': '🆕 Nouveau : Tacos Mixte',
+        'subtitle': 'Découvrez notre best-seller',
+        'gradient': [const Color(0xFF6D4C41), const Color(0xFFA1887F)],
+        'icon': Icons.restaurant,
+      },
+      {
+        'title': '🚀 Livraison gratuite',
+        'subtitle': 'Dès 80 MAD de commande',
+        'gradient': [const Color(0xFF1565C0), const Color(0xFF42A5F5)],
+        'icon': Icons.delivery_dining,
+      },
+    ];
+
+    return SizedBox(
+      height: 140,
+      child: PageView.builder(
+        itemCount: banners.length,
+        controller: _promoPageController,
+        itemBuilder: (context, index) {
+          final banner = banners[index];
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: banner['gradient'] as List<Color>,
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: (banner['gradient'] as List<Color>)[0].withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          banner['title'] as String,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          banner['subtitle'] as String,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.white.withValues(alpha: 0.9),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      banner['icon'] as IconData,
+                      color: Colors.white,
+                      size: 36,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ).animate().fadeIn(duration: 500.ms, delay: (200 * index).ms)
+              .slideX(begin: 0.1, end: 0, duration: 400.ms);
+        },
+      ),
     );
   }
 }

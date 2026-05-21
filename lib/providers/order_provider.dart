@@ -5,19 +5,21 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/order.dart';
 
+
 class OrderProvider extends ChangeNotifier {
   List<Order> _orders = [];
   Timer? _timer;
   String? _currentUserId;
+  StreamSubscription<User?>? _authSubscription; // Fix #6: Store subscription
   
   OrderProvider() {
     _initializeOrders();
     _startTimer();
   }
   
- 
   void _initializeOrders() {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    // Fix #6: Store the subscription for proper cleanup
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((User? user) {
       final newUserId = user?.uid;
       
       // Si l'utilisateur change, recharger les commandes
@@ -31,7 +33,6 @@ class OrderProvider extends ChangeNotifier {
         }
       }
     });
-    
     
     _currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (_currentUserId != null) {
@@ -60,10 +61,14 @@ class OrderProvider extends ChangeNotifier {
     return _orders.where((order) => order.isCompleted).toList();
   }
   
-  
   int get activeOrderCount => activeOrders.length;
   
-  // MT
+  /// Recharger les commandes depuis le stockage local
+  Future<void> loadOrders() async {
+    await _loadOrders();
+  }
+  
+  // Montant total dépensé
   double get totalSpent {
     return _orders.fold(0.0, (sum, order) => sum + order.totalAmount);
   }
@@ -116,11 +121,11 @@ class OrderProvider extends ChangeNotifier {
   
   // Obtenir une commande par ID
   Order? getOrderById(String id) {
-    try {
-      return _orders.firstWhere((order) => order.id == id);
-    } catch (e) {
-      return null;
+    final index = _orders.indexWhere((order) => order.id == id);
+    if (index != -1) {
+      return _orders[index];
     }
+    return null;
   }
   
   // Annuler une commande
@@ -219,9 +224,11 @@ class OrderProvider extends ChangeNotifier {
     }
   }
   
+  // Fix #6: Properly dispose both timer and auth subscription
   @override
   void dispose() {
     _timer?.cancel();
+    _authSubscription?.cancel();
     super.dispose();
   }
 }

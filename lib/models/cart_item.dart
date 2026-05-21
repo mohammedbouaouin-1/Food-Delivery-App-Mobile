@@ -1,6 +1,7 @@
 import 'food_item.dart';
 
 class CartItem {
+  static const int maxQuantity = 20;
   final FoodItem foodItem;
   int quantity;
   final String? specialInstructions;
@@ -23,8 +24,10 @@ class CartItem {
   
 
 
-  void increaseQuantity() {
+  bool increaseQuantity() {
+    if (quantity >= maxQuantity) return false;
     quantity++;
+    return true;
   }
   
  
@@ -53,9 +56,12 @@ class CartItem {
 
 
   factory CartItem.fromMap(Map<String, dynamic> map) {
+    int qty = map['quantity'] ?? 1;
+    if (qty < 1) qty = 1;
+    if (qty > maxQuantity) qty = maxQuantity;
     return CartItem(
       foodItem: FoodItem.fromMap(map['foodItem']),
-      quantity: map['quantity'] ?? 1,
+      quantity: qty,
       specialInstructions: map['specialInstructions'],
       addedAt: map['addedAt'] != null 
           ? DateTime.parse(map['addedAt']) 

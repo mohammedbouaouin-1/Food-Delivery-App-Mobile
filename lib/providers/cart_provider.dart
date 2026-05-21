@@ -1,21 +1,24 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/food_item.dart';
 import '../models/cart_item.dart';
+import '../data/app_constants.dart';
 
 class CartProvider extends ChangeNotifier {
   List<CartItem> _items = [];
   String? _currentUserId;
+  StreamSubscription<User?>? _authSubscription; // Fix #6: Store subscription
   
   CartProvider() {
     _initializeCart();
   }
   
-  
   void _initializeCart() {
-    FirebaseAuth.instance.authStateChanges().listen((User? user) {
+    // Fix #6: Store the subscription for proper cleanup
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((User? user) {
       final newUserId = user?.uid;
       
       // Si l'utilisateur change, recharger le panier
@@ -29,7 +32,6 @@ class CartProvider extends ChangeNotifier {
         }
       }
     });
-    
     
     _currentUserId = FirebaseAuth.instance.currentUser?.uid;
     if (_currentUserId != null) {
@@ -70,24 +72,22 @@ class CartProvider extends ChangeNotifier {
     return _items.any((item) => item.foodItem.id == foodId);
   }
   
-  
   int getItemQuantity(String foodId) {
-    try {
-      final item = _items.firstWhere((item) => item.foodItem.id == foodId);
-      return item.quantity;
-    } catch (e) {
-      return 0;
+    // Fix #3: Use indexWhere instead of try/catch
+    final index = _items.indexWhere((item) => item.foodItem.id == foodId);
+    if (index != -1) {
+      return _items[index].quantity;
     }
+    return 0;
   }
   
   // Ajouter un article
   Future<void> addItem(FoodItem foodItem, {String? specialInstructions}) async {
-    try {
-      final existingItem = _items.firstWhere(
-        (item) => item.foodItem.id == foodItem.id,
-      );
-      existingItem.increaseQuantity();
-    } catch (e) {
+    // Fix #3: Use indexWhere instead of try/catch
+    final index = _items.indexWhere((item) => item.foodItem.id == foodItem.id);
+    if (index != -1) {
+      _items[index].increaseQuantity();
+    } else {
       _items.add(CartItem(
         foodItem: foodItem,
         specialInstructions: specialInstructions,
@@ -96,37 +96,64 @@ class CartProvider extends ChangeNotifier {
     await _saveCart();
     notifyListeners();
   }
+
+  // Restaurer un article complet (utilisé par l'undo)
+  Future<void> restoreCartItem(CartItem item) async {
+    _items.add(item);
+    await _saveCart();
+    notifyListeners();
+  }
+
+  // Ajouter plusieurs articles d'un coup (pour le re-order)
+  Future<void> addItemsBatch(List<CartItem> itemsToCopy) async {
+    for (var item in itemsToCopy) {
+      final index = _items.indexWhere((itemInCart) => itemInCart.foodItem.id == item.foodItem.id);
+      if (index != -1) {
+        final currentQty = _items[index].quantity;
+        final newQty = (currentQty + item.quantity).clamp(1, CartItem.maxQuantity);
+        _items[index].quantity = newQty;
+      } else {
+        _items.add(CartItem(
+          foodItem: item.foodItem,
+          quantity: item.quantity.clamp(1, CartItem.maxQuantity),
+          specialInstructions: item.specialInstructions,
+        ));
+      }
+    }
+    await _saveCart();
+    notifyListeners();
+  }
   
   // Augmenter la quantité
-  Future<void> increaseQuantity(String foodId) async {
-    try {
-      final item = _items.firstWhere((item) => item.foodItem.id == foodId);
-      item.increaseQuantity();
-      await _saveCart();
-      notifyListeners();
-    } catch (e) {
+  Future<bool> increaseQuantity(String foodId) async {
+    final index = _items.indexWhere((item) => item.foodItem.id == foodId);
+    if (index != -1) {
+      final success = _items[index].increaseQuantity();
+      if (success) {
+        await _saveCart();
+        notifyListeners();
+      }
+      return success;
+    } else {
       debugPrint('Item not found: $foodId');
+      return false;
     }
   }
-  
 
   Future<void> decreaseQuantity(String foodId) async {
-    try {
-      final item = _items.firstWhere((item) => item.foodItem.id == foodId);
-      
-      if (item.quantity > 1) {
-        item.decreaseQuantity();
+    final index = _items.indexWhere((item) => item.foodItem.id == foodId);
+    if (index != -1) {
+      if (_items[index].quantity > 1) {
+        _items[index].decreaseQuantity();
       } else {
-        _items.remove(item);
+        _items.removeAt(index);
       }
-      
       await _saveCart();
       notifyListeners();
-    } catch (e) {
+    } else {
       debugPrint('Item not found: $foodId');
     }
   }
-  
 
   Future<void> removeItem(String foodId) async {
     _items.removeWhere((item) => item.foodItem.id == foodId);
@@ -134,17 +161,12 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  
   Future<void> updateSpecialInstructions(String foodId, String instructions) async {
-    try {
-      final index = _items.indexWhere((item) => item.foodItem.id == foodId);
-      if (index != -1) {
-        _items[index] = _items[index].copyWith(specialInstructions: instructions);
-        await _saveCart();
-        notifyListeners();
-      }
-    } catch (e) {
-      debugPrint('Error updating instructions: $e');
+    final index = _items.indexWhere((item) => item.foodItem.id == foodId);
+    if (index != -1) {
+      _items[index] = _items[index].copyWith(specialInstructions: instructions);
+      await _saveCart();
+      notifyListeners();
     }
   }
   
@@ -155,12 +177,10 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
   
-  
   double getSubtotal() => totalPrice;
   
-  
-  double getDeliveryFee() => 5.0;
-  
+  // Fix #1: Utiliser la constante centralisée
+  double getDeliveryFee() => AppConstants.deliveryFee;
   
   double getTotalWithDelivery() => totalPrice + getDeliveryFee();
   
@@ -202,5 +222,12 @@ class CartProvider extends ChangeNotifier {
       'total': getTotalWithDelivery(),
       'calories': totalCalories,
     };
+  }
+  
+  // Fix #6: Properly dispose subscription
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 }

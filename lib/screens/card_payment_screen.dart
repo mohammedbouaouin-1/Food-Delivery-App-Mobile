@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 import '../providers/cart_provider.dart';
 import '../providers/order_provider.dart';
+import '../providers/loyalty_provider.dart';
 import '../models/order.dart';
+import '../data/app_constants.dart';
+import 'order_success_screen.dart';
 
 
 class CardPaymentScreen extends StatefulWidget {
@@ -11,6 +15,8 @@ class CardPaymentScreen extends StatefulWidget {
   final String phone;
   final String address;
   final String city;
+  final double discount;
+  final String? appliedPromoCode;
 
   const CardPaymentScreen({
     super.key,
@@ -18,6 +24,8 @@ class CardPaymentScreen extends StatefulWidget {
     required this.phone,
     required this.address,
     required this.city,
+    this.discount = 0.0,
+    this.appliedPromoCode,
   });
 
   @override
@@ -100,92 +108,46 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final orderProvider = Provider.of<OrderProvider>(context, listen: false);
 
+      // Fix #1: Utiliser les frais centralisés
+      final deliveryFee = AppConstants.deliveryFee;
+      final totalAmount = (cartProvider.totalPrice + deliveryFee - widget.discount).clamp(0.0, double.infinity);
+
       final order = Order(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: const Uuid().v4(),
         items: List.from(cartProvider.items),
-        totalAmount: cartProvider.totalPrice + 15,
+        totalAmount: totalAmount,
         dateTime: DateTime.now(),
         customerName: widget.name,
         phone: widget.phone,
         address: widget.address,
         city: widget.city,
         paymentMethod: 'Carte bancaire',
+        deliveryFee: deliveryFee,
+        notes: widget.appliedPromoCode != null ? 'Promo: ${widget.appliedPromoCode} (-${widget.discount.toStringAsFixed(0)} ${AppConstants.currency})' : null,
       );
 
       orderProvider.addOrder(order);
-      final orderNumber = orderProvider.orders.length;
+      final orderNumber = order.id;
 
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 30),
-              const SizedBox(width: 10),
-              const Text('Paiement réussi !'),
-            ],
+      // #3 — Ajouter des points de fidélité
+      try {
+        final loyaltyProvider = Provider.of<LoyaltyProvider>(context, listen: false);
+        loyaltyProvider.addPoints(totalAmount);
+      } catch (e) {
+        debugPrint('Error adding loyalty points: $e');
+      }
+
+      cartProvider.clearCart();
+
+      // Amélioration #10: Écran de succès animé
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OrderSuccessScreen(
+            orderNumber: orderNumber,
+            totalAmount: totalAmount,
+            paymentMethod: 'Carte bancaire',
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Votre paiement a été effectué avec succès.',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 10),
-              const Text(
-                'Récapitulatif de la commande :',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Commande N° $orderNumber',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-              Text('Nom : ${widget.name}'),
-              Text('Téléphone : ${widget.phone}'),
-              Text('Adresse : ${widget.address}'),
-              Text('Ville : ${widget.city}'),
-              const SizedBox(height: 10),
-              const Divider(),
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total payé :',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                  Text(
-                    '${(cartProvider.totalPrice + 15).toStringAsFixed(2)} MAD',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                cartProvider.clearCart();
-                Navigator.of(ctx).pop();
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
-              } ,
-              child: const Text('OK'),
-            ),
-          ],
         ),
       );
     }
@@ -194,11 +156,12 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Paiement par carte'),
-        backgroundColor: Colors.brown[700],
+        backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.brown[700],
         foregroundColor: Colors.white,
       ),
       body: Stack(
@@ -210,119 +173,184 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // #29 — Carte bancaire avec glassmorphism
                   Container(
-                    height: 200,
+                    height: 210,
                     width: double.infinity,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.blue.shade800, Colors.blue.shade600],
-                        begin: Alignment.topLeft ,
-                        end: Alignment.bottomRight ,
+                        colors: [
+                          const Color(0xFF1A237E).withValues(alpha: 0.85),
+                          const Color(0xFF283593).withValues(alpha: 0.75),
+                          const Color(0xFF3949AB).withValues(alpha: 0.65),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        width: 1.5,
+                      ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
+                          color: const Color(0xFF1A237E).withValues(alpha: 0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 10),
+                        ),
+                        BoxShadow(
+                          color: Colors.white.withValues(alpha: 0.05),
+                          blurRadius: 1,
+                          spreadRadius: 1,
                         ),
                       ],
                     ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Icon(
-                                Icons.credit_card,
-                                color: Colors.white,
-                                size: 40,
+                    child: Stack(
+                      children: [
+                        // Shine effect
+                        Positioned(
+                          top: -30,
+                          right: -30,
+                          child: Container(
+                            width: 120,
+                            height: 120,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.15),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
                               ),
-                              Text(
-                                _cardType,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            _cardNumberController.text.isEmpty
-                                ? '**** **** **** ****'
-                                : _cardNumberController.text,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 22,
-                              letterSpacing: 2,
-                              fontWeight: FontWeight.w500,
                             ),
                           ),
-                          Row(
+                        ),
+                        Positioned(
+                          bottom: -20,
+                          left: -20,
+                          child: Container(
+                            width: 80,
+                            height: 80,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: RadialGradient(
+                                colors: [
+                                  Colors.white.withValues(alpha: 0.1),
+                                  Colors.white.withValues(alpha: 0.0),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        // Card content
+                        Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'TITULAIRE',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 10,
-                                    ),
+                                  const Icon(
+                                    Icons.credit_card,
+                                    color: Colors.white,
+                                    size: 40,
                                   ),
                                   Text(
-                                    _cardHolderController.text.isEmpty
-                                        ? 'VOTRE NOM'
-                                        : _cardHolderController.text
-                                              .toUpperCase(),
+                                    _cardType,
                                     style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ],
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  _cardNumberController.text.isEmpty
+                                      ? '**** **** **** ****'
+                                      : _cardNumberController.text,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 22,
+                                    letterSpacing: 2,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text(
-                                    'EXPIRE',
-                                    style: TextStyle(
-                                      color: Colors.white70,
-                                      fontSize: 10,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'TITULAIRE',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 10,
+                                          ),
+                                        ),
+                                        Text(
+                                          _cardHolderController.text.isEmpty
+                                              ? 'VOTRE NOM'
+                                              : _cardHolderController.text.toUpperCase(),
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    _expiryDateController.text.isEmpty
-                                        ? 'MM/AA'
-                                        : _expiryDateController.text,
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                  const SizedBox(width: 16),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'EXPIRE',
+                                        style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 10,
+                                        ),
+                                      ),
+                                      Text(
+                                        _expiryDateController.text.isEmpty
+                                            ? 'MM/AA'
+                                            : _expiryDateController.text,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 30),
 
-                  const Text(
+                  Text(
                     'Informations de la carte',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
 
                   const SizedBox(height: 20),
@@ -339,20 +367,19 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     ),
                     keyboardType: TextInputType.number,
                     inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                      LengthLimitingTextInputFormatter(16),
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9 ]')),
+                      LengthLimitingTextInputFormatter(19),
                     ],
                     onChanged: (value) {
-                      setState(() {
-                        _cardNumberController.text = _formatCardNumber(value);
-                        _cardNumberController.selection =
-                            TextSelection.fromPosition(
-                              TextPosition(
-                                offset: _cardNumberController.text.length,
-                              ),
-                            );
-                      });
-                      _detectCardType(value);
+                      final cleanValue = value.replaceAll(' ', '');
+                      final formatted = _formatCardNumber(cleanValue);
+                      if (formatted != value) {
+                        _cardNumberController.value = TextEditingValue(
+                          text: formatted,
+                          selection: TextSelection.collapsed(offset: formatted.length),
+                        );
+                      }
+                      _detectCardType(cleanValue);
                     },
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -440,8 +467,19 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             }
 
                             int? month = int.tryParse(parts[0]);
+                            int? year = int.tryParse(parts[1]);
                             if (month == null || month < 1 || month > 12) {
                               return 'Mois invalide';
+                            }
+
+                            // Vérifier si la carte est expirée
+                            if (year != null) {
+                              final now = DateTime.now();
+                              final currentYear = now.year % 100;
+                              final currentMonth = now.month;
+                              if (year < currentYear || (year == currentYear && month < currentMonth)) {
+                                return 'Carte expirée';
+                              }
                             }
 
                             return null;
@@ -485,9 +523,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.grey.shade300),
+                      border: Border.all(color: isDark ? const Color(0xFF3E3E3E) : Colors.grey.shade300),
                     ),
                     child: Row(
                       children: [
@@ -497,7 +535,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                           child: Text(
                             'Paiement sécurisé SSL. Vos données sont protégées.',
                             style: TextStyle(
-                              color: Colors.grey.shade700,
+                              color: isDark ? Colors.grey[400] : Colors.grey.shade700,
                               fontSize: 13,
                             ),
                           ),
@@ -512,28 +550,29 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.brown[50],
+                      color: isDark ? const Color(0xFF1E1E1E) : Colors.brown[50],
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.brown.shade200),
+                      border: Border.all(color: isDark ? const Color(0xFF3E3E3E) : Colors.brown.shade200),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
+                        Text(
                           'Montant à payer :',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
 
-                        
+
                         //  adapter automatiquement la taille du texte
                         Flexible(
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              '${(cartProvider.totalPrice + 15).toStringAsFixed(2)} MAD',
+                              '${(cartProvider.totalPrice + AppConstants.deliveryFee - widget.discount).clamp(0.0, double.infinity).toStringAsFixed(2)} ${AppConstants.currency}',
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,

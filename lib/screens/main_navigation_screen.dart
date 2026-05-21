@@ -1,29 +1,38 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/favorites_provider.dart';
+import '../providers/order_provider.dart';
 import 'menu_screen.dart';
 import 'cart_screen.dart';
 import 'orders_screen.dart';
+import 'favorites_screen.dart';
 import 'settings_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  const MainNavigationScreen({super.key});
+  final int initialIndex;
+  const MainNavigationScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _selectedIndex = 0;
+  late int _selectedIndex = widget.initialIndex;
   
   final List<Widget> _screens = [
     const MenuScreen(),
+    const FavoritesScreen(),
     const CartScreen(),
     const OrdersScreen(),
     const SettingsScreen(),
   ];
 
   void _onItemTapped(int index) {
+    // #31 — Haptic feedback
+    HapticFeedback.lightImpact();
     setState(() {
       _selectedIndex = index;
     });
@@ -32,35 +41,145 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final favoritesProvider = Provider.of<FavoritesProvider>(context);
+    final orderProvider = Provider.of<OrderProvider>(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: Colors.brown[700],
-        unselectedItemColor: Colors.grey[400],
-        selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold),
-        elevation: 8,
-        items: [
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Menu',
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      // #26 — Bottom Navigation Bar animée avec Glassmorphism
+      extendBody: true, // IMPORTANT for glassmorphism to cover background
+      bottomNavigationBar: ClipRRect(
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+          child: Container(
+            decoration: BoxDecoration(
+              color: isDark 
+                  ? const Color(0xFF1E1E1E).withValues(alpha: 0.8) 
+                  : Colors.white.withValues(alpha: 0.8),
+              border: Border(
+                top: BorderSide(
+                  color: isDark 
+                      ? Colors.white.withValues(alpha: 0.1) 
+                      : Colors.black.withValues(alpha: 0.05),
+                  width: 1,
+                ),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: isDark ? Colors.black38 : Colors.grey.withValues(alpha: 0.1),
+                  blurRadius: 12,
+                  offset: const Offset(0, -2),
+                ),
+              ],
+            ),
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildNavItem(
+                  index: 0,
+                  icon: Icons.restaurant_menu,
+                  label: 'Menu',
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  index: 1,
+                  icon: Icons.favorite_border,
+                  activeIcon: Icons.favorite,
+                  label: 'Favoris',
+                  badgeCount: favoritesProvider.favoriteCount,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  index: 2,
+                  icon: Icons.shopping_cart_outlined,
+                  activeIcon: Icons.shopping_cart,
+                  label: 'Panier',
+                  badgeCount: cartProvider.totalItemCount,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  index: 3,
+                  icon: Icons.receipt_long_outlined,
+                  activeIcon: Icons.receipt_long,
+                  label: 'Commandes',
+                  badgeCount: orderProvider.activeOrderCount,
+                  isDark: isDark,
+                ),
+                _buildNavItem(
+                  index: 4,
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings,
+                  label: 'Réglages',
+                  isDark: isDark,
+                ),
+              ],
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Stack(
+        ),
+      ),
+      ),
+      ),
+    );
+  }
+
+  // #26 — Item de navigation animé
+  Widget _buildNavItem({
+    required int index,
+    required IconData icon,
+    IconData? activeIcon,
+    required String label,
+    int badgeCount = 0,
+    required bool isDark,
+  }) {
+    final isSelected = _selectedIndex == index;
+    final selectedColor = isDark ? Colors.brown[300]! : Colors.brown[700]!;
+    final unselectedColor = isDark ? Colors.grey[600]! : Colors.grey[400]!;
+
+    return GestureDetector(
+      onTap: () => _onItemTapped(index),
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
+        padding: EdgeInsets.symmetric(
+          horizontal: isSelected ? 16 : 12,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? selectedColor.withValues(alpha: 0.12)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
               clipBehavior: Clip.none,
               children: [
-                const Icon(Icons.shopping_cart),
-                if (cartProvider.totalItemCount > 0)
+                AnimatedScale(
+                  scale: isSelected ? 1.15 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Icon(
+                    isSelected ? (activeIcon ?? icon) : icon,
+                    color: isSelected ? selectedColor : unselectedColor,
+                    size: 24,
+                  ),
+                ),
+                if (badgeCount > 0)
                   Positioned(
-                    right: -6,
+                    right: -8,
                     top: -6,
                     child: Container(
                       padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: Colors.red,
                         shape: BoxShape.circle,
                       ),
@@ -69,7 +188,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                         minHeight: 18,
                       ),
                       child: Text(
-                        '${cartProvider.totalItemCount}',
+                        '$badgeCount',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -81,17 +200,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                   ),
               ],
             ),
-            label: 'Panier',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.receipt_long),
-            label: 'Commandes',
-          ),
-          const BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Paramètres',
-          ),
-        ],
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: isSelected ? 11 : 10,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w400,
+                color: isSelected ? selectedColor : unselectedColor,
+              ),
+              child: Text(label),
+            ),
+          ],
+        ),
       ),
     );
   }

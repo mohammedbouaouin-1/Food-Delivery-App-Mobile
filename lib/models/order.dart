@@ -1,4 +1,5 @@
 import 'cart_item.dart';
+import '../data/app_constants.dart';
 
 enum OrderStatus {
   pending('En attente', '⏳'),
@@ -44,13 +45,13 @@ class Order {
     this.remainingMinutes = 30,
     this.remainingSeconds = 0,
     this.userId,
-    this.deliveryFee = 15.0,
+    this.deliveryFee = AppConstants.deliveryFee,
     this.notes,
     this.deliveredAt,
   });
   
   
-  int get totalEstimatedSeconds => 30 * 60; // 30 minutes
+  int get totalEstimatedSeconds => remainingMinutes * 60;
   
   
   int get elapsedSeconds {
@@ -137,13 +138,29 @@ class Order {
   
   
   factory Order.fromMap(Map<String, dynamic> map) {
+    DateTime parsedDateTime;
+    try {
+      parsedDateTime = map['dateTime'] != null ? DateTime.parse(map['dateTime']) : DateTime.now();
+    } catch (_) {
+      parsedDateTime = DateTime.now();
+    }
+
+    DateTime? parsedDeliveredAt;
+    if (map['deliveredAt'] != null) {
+      try {
+        parsedDeliveredAt = DateTime.parse(map['deliveredAt']);
+      } catch (_) {
+        parsedDeliveredAt = null;
+      }
+    }
+
     return Order(
       id: map['id'] ?? '',
       items: (map['items'] as List?)
           ?.map((item) => CartItem.fromMap(item))
           .toList() ?? [],
       totalAmount: (map['totalAmount'] ?? 0).toDouble(),
-      dateTime: DateTime.parse(map['dateTime']),
+      dateTime: parsedDateTime,
       customerName: map['customerName'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'] ?? '',
@@ -156,11 +173,9 @@ class Order {
       remainingMinutes: map['remainingMinutes'] ?? 30,
       remainingSeconds: map['remainingSeconds'] ?? 0,
       userId: map['userId'],
-      deliveryFee: (map['deliveryFee'] ?? 15.0).toDouble(),
+      deliveryFee: (map['deliveryFee'] ?? AppConstants.deliveryFee).toDouble(),
       notes: map['notes'],
-      deliveredAt: map['deliveredAt'] != null 
-          ? DateTime.parse(map['deliveredAt']) 
-          : null,
+      deliveredAt: parsedDeliveredAt,
     );
   }
   

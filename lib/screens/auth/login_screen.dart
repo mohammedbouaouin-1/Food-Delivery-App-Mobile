@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/validators.dart';
 import 'register_screen.dart';
 import '../main_navigation_screen.dart';
 
@@ -22,7 +23,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   
   // emails sauvegardés 
   List<String> _savedEmails = [];
-  String? _selectedEmail;
+  late final FocusNode _emailFocusNode = FocusNode();
   
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -58,6 +59,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _animationController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
     super.dispose();
   }
 
@@ -108,6 +110,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           await _saveEmailToList(_emailController.text.trim());
         }
         
+        if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
         );
@@ -239,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.2),
+                              color: Colors.black.withValues(alpha: 0.2),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -265,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         'Connectez-vous pour commander',
                         style: TextStyle(
                           fontSize: 16,
-                          color: Colors.white.withOpacity(0.9),
+                          color: Colors.white.withValues(alpha: 0.9),
                         ),
                       ),
                       const SizedBox(height: 50),
@@ -278,7 +281,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -290,7 +293,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             children: [
                               
                               RawAutocomplete<String>(
-                                focusNode: FocusNode(),
+                                focusNode: _emailFocusNode,
                                 textEditingController: _emailController,
                                 optionsBuilder: (TextEditingValue textEditingValue) {
                                   
@@ -332,15 +335,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                                       ),
                                     ),
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Veuillez entrer votre email';
-                                      }
-                                      if (!value.contains('@')) {
-                                        return 'Email invalide';
-                                      }
-                                      return null;
-                                    },
+                                    validator: Validators.validateEmail,
                                   );
                                 },
                                 optionsViewBuilder: (
@@ -429,15 +424,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                                   ),
                                 ),
-                                validator: (value) {
-                                  if (value == null || value.isEmpty) {
-                                    return 'Veuillez entrer votre mot de passe';
-                                  }
-                                  if (value.length < 6) {
-                                    return 'Au moins 6 caractères';
-                                  }
-                                  return null;
-                                },
+                                validator: Validators.validatePassword,
                               ),
                               
                               const SizedBox(height: 15),
@@ -569,10 +556,36 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  icon: Icon(
-                                    Icons.g_mobiledata_rounded,
-                                    color: Colors.red[600],
-                                    size: 32,
+                                  icon: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Container(
+                                        width: 24,
+                                        height: 24,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Text(
+                                        'G',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w900,
+                                          fontFamily: 'GoogleSans',
+                                          foreground: Paint()
+                                            ..shader = const LinearGradient(
+                                              colors: [
+                                                Colors.blue,
+                                                Colors.red,
+                                                Colors.yellow,
+                                                Colors.green,
+                                              ],
+                                              stops: [0.25, 0.5, 0.75, 1.0],
+                                            ).createShader(const Rect.fromLTWH(0.0, 0.0, 24.0, 24.0)),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                   label: const Text(
                                     'Continuer avec Google',

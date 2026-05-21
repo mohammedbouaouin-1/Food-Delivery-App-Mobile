@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/validators.dart';
 import '../main_navigation_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
+  final _passwordNotifier = ValueNotifier<String>('');
 
   @override
   void dispose() {
@@ -29,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
+    _passwordNotifier.dispose();
     super.dispose();
   }
 
@@ -113,7 +116,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -140,7 +143,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   'Rejoignez-nous dès maintenant',
                   style: TextStyle(
                     fontSize: 16,
-                    color: Colors.white.withOpacity(0.9),
+                    color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
                 const SizedBox(height: 40),
@@ -153,7 +156,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -177,15 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer votre nom';
-                            }
-                            if (value.length < 3) {
-                              return 'Le nom doit contenir au moins 3 caractères';
-                            }
-                            return null;
-                          },
+                          validator: Validators.validateName,
                         ),
                         const SizedBox(height: 16),
                         
@@ -204,15 +199,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer votre email';
-                            }
-                            if (!value.contains('@') || !value.contains('.')) {
-                              return 'Email invalide';
-                            }
-                            return null;
-                          },
+                          validator: Validators.validateEmail,
                         ),
                         const SizedBox(height: 16),
                         
@@ -231,15 +218,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer votre numéro';
-                            }
-                            if (value.length < 10) {
-                              return 'Numéro invalide';
-                            }
-                            return null;
-                          },
+                          validator: Validators.validatePhone,
                         ),
                         const SizedBox(height: 16),
                         
@@ -247,6 +226,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
+                          onChanged: (value) => _passwordNotifier.value = value, // #27 — Trigger notifier update for strength indicator
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
                             prefixIcon: Icon(Icons.lock, color: Colors.brown[700]),
@@ -269,14 +249,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
                             ),
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Veuillez entrer un mot de passe';
-                            }
-                            if (value.length < 6) {
-                              return 'Au moins 6 caractères';
-                            }
-                            return null;
+                          validator: Validators.validatePassword,
+                        ),
+                        // #27 — Indicateur de force du mot de passe
+                        ValueListenableBuilder<String>(
+                          valueListenable: _passwordNotifier,
+                          builder: (context, password, child) {
+                            if (password.isEmpty) return const SizedBox.shrink();
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8, bottom: 8),
+                              child: _buildPasswordStrengthIndicator(password),
+                            );
                           },
                         ),
                         const SizedBox(height: 16),
@@ -407,6 +390,78 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // #27 — Indicateur de force du mot de passe
+  Widget _buildPasswordStrengthIndicator(String password) {
+    double strength = 0;
+    String label = '';
+    Color color = Colors.red;
+
+    if (password.length >= 6) strength += 0.25;
+    if (password.length >= 10) strength += 0.25;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength += 0.15;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength += 0.15;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength += 0.2;
+
+    if (strength <= 0.25) {
+      label = 'Faible';
+      color = Colors.red;
+    } else if (strength <= 0.5) {
+      label = 'Moyen';
+      color = Colors.orange;
+    } else if (strength <= 0.75) {
+      label = 'Bon';
+      color = Colors.yellow[700]!;
+    } else {
+      label = 'Excellent';
+      color = Colors.green;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: 6,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(3),
+                  color: Colors.grey[300],
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: strength,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(3),
+                      color: color,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Utilisez majuscules, chiffres et symboles',
+          style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+        ),
+      ],
     );
   }
 }
