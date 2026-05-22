@@ -14,7 +14,7 @@ class ConfirmationDialog {
       context: context,
       builder: (BuildContext ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -23,7 +23,9 @@ class ConfirmationDialog {
             children: [
               Icon(
                 isDangerous ? Icons.warning_amber_rounded : Icons.info_outline,
-                color: isDangerous ? Colors.red : (confirmColor ?? Colors.brown[700]),
+                color: isDangerous
+                    ? Colors.red
+                    : (confirmColor ?? Colors.brown[700]),
                 size: 24,
               ),
               const SizedBox(width: 10),
@@ -59,11 +61,14 @@ class ConfirmationDialog {
             ElevatedButton(
               onPressed: () => Navigator.of(ctx).pop(true),
               style: ElevatedButton.styleFrom(
-                backgroundColor: isDangerous ? Colors.red : (confirmColor ?? Colors.brown[700]),
+                backgroundColor: isDangerous
+                    ? Colors.red
+                    : (confirmColor ?? Colors.brown[700]),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 elevation: 1,
               ),
               child: Text(

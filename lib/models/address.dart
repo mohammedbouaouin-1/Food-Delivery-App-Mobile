@@ -1,6 +1,6 @@
 class Address {
   final String id;
-  final String label; // e.g., 'Maison', 'Bureau'
+  final String label;
   final String address;
   final String city;
   final bool isDefault;

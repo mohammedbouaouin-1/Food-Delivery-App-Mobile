@@ -12,8 +12,7 @@ class CustomSnackbar {
     Duration duration = const Duration(seconds: 3),
   }) {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    
-    // Clear any active SnackBars
+
     scaffoldMessenger.removeCurrentSnackBar();
 
     Color backgroundColor;

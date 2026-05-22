@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/order_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/locale_provider.dart';
 import '../models/order.dart';
 import '../data/app_constants.dart';
 import 'main_navigation_screen.dart';
@@ -17,8 +18,6 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-
-  // couleurs selon le statut
   List<Color> _getStatusColors(OrderStatus status) {
     switch (status) {
       case OrderStatus.pending:
@@ -34,35 +33,66 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
   }
 
-  //  confirmation pour annuler une commande
+  String _getStatusLabel(OrderStatus status, LocaleProvider localeProvider) {
+    switch (status) {
+      case OrderStatus.pending:
+        return localeProvider.translate('status_pending');
+      case OrderStatus.preparing:
+        return localeProvider.translate('status_preparing');
+      case OrderStatus.delivering:
+        return localeProvider.translate('status_delivering');
+      case OrderStatus.delivered:
+        return localeProvider.translate('status_delivered');
+      case OrderStatus.cancelled:
+        return localeProvider.translate('status_cancelled');
+    }
+  }
+
+  String _getStatusMessage(OrderStatus status, LocaleProvider localeProvider) {
+    switch (status) {
+      case OrderStatus.pending:
+        return localeProvider.translate('msg_pending');
+      case OrderStatus.preparing:
+        return localeProvider.translate('msg_preparing');
+      case OrderStatus.delivering:
+        return localeProvider.translate('msg_delivering');
+      case OrderStatus.delivered:
+        return localeProvider.translate('msg_delivered');
+      case OrderStatus.cancelled:
+        return localeProvider.translate('msg_cancelled');
+    }
+  }
+
   Future<void> _showCancelDialog(BuildContext context, Order order) async {
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
 
     return showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 24),
-            SizedBox(width: 8),
+            const Icon(Icons.warning_amber_rounded,
+                color: Colors.orange, size: 24),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Annuler ?',
-                style: TextStyle(fontSize: 18),
+                localeProvider.translate('cancel_order_title'),
+                style: const TextStyle(fontSize: 18),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        content: const Text(
-          'Voulez-vous annuler cette commande ?',
-          style: TextStyle(fontSize: 14),
+        content: Text(
+          localeProvider.translate('cancel_order_confirm'),
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Non'),
+            child: Text(localeProvider.translate('no')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -74,7 +104,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      success ? 'Commande annulée' : 'Impossible d\'annuler',
+                      success
+                          ? localeProvider.translate('order_cancelled')
+                          : localeProvider.translate('cannot_cancel'),
                     ),
                     backgroundColor: success ? Colors.orange : Colors.red,
                     behavior: SnackBarBehavior.floating,
@@ -87,42 +119,43 @@ class _OrdersScreenState extends State<OrdersScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.orange,
             ),
-            child: const Text('Annuler', style: TextStyle(color: Colors.white)),
+            child: Text(localeProvider.translate('cancel'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // confirmation pour supprimer une commande
   Future<void> _showDeleteDialog(BuildContext context, Order order) async {
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
 
     return showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.delete_forever, color: Colors.red, size: 24),
-            SizedBox(width: 8),
+            const Icon(Icons.delete_forever, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Supprimer ?',
-                style: TextStyle(fontSize: 18),
+                localeProvider.translate('delete_order_title'),
+                style: const TextStyle(fontSize: 18),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        content: const Text(
-          'Supprimer cette commande de l\'historique ?',
-          style: TextStyle(fontSize: 14),
+        content: Text(
+          localeProvider.translate('delete_order_confirm'),
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
+            child: Text(localeProvider.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -132,8 +165,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               }
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Commande supprimée'),
+                  SnackBar(
+                    content: Text(localeProvider.translate('order_deleted')),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -143,43 +176,43 @@ class _OrdersScreenState extends State<OrdersScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child:
-                const Text('Supprimer', style: TextStyle(color: Colors.white)),
+            child: Text(localeProvider.translate('delete_btn'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // Dialogue pour vider tout l'historique
   Future<void> _showClearHistoryDialog(BuildContext context) async {
     final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
 
     return showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Row(
+        title: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.delete_sweep, color: Colors.red, size: 24),
-            SizedBox(width: 8),
+            const Icon(Icons.delete_sweep, color: Colors.red, size: 24),
+            const SizedBox(width: 8),
             Flexible(
               child: Text(
-                'Vider l\'historique ?',
-                style: TextStyle(fontSize: 16),
+                localeProvider.translate('clear_history_title'),
+                style: const TextStyle(fontSize: 16),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
-        content: const Text(
-          'Supprimer TOUTES vos commandes ?',
-          style: TextStyle(fontSize: 14),
+        content: Text(
+          localeProvider.translate('clear_history_confirm'),
+          style: const TextStyle(fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Annuler'),
+            child: Text(localeProvider.translate('cancel')),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -189,8 +222,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               }
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Historique vidé'),
+                  SnackBar(
+                    content: Text(localeProvider.translate('history_cleared')),
                     backgroundColor: Colors.red,
                     behavior: SnackBarBehavior.floating,
                   ),
@@ -200,29 +233,29 @@ class _OrdersScreenState extends State<OrdersScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
             ),
-            child: const Text('Tout supprimer',
-                style: TextStyle(color: Colors.white)),
+            child: Text(localeProvider.translate('all_delete_btn'),
+                style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // #23 — Re-commander
   Future<void> _handleReorder(BuildContext context, Order order) async {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
 
-    // Batch add all items at once
     await cartProvider.addItemsBatch(order.items);
 
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Row(
+          content: Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.white),
-              SizedBox(width: 8),
-              Expanded(child: Text('Articles ajoutés au panier !')),
+              const Icon(Icons.check_circle, color: Colors.white),
+              const SizedBox(width: 8),
+              Expanded(
+                  child: Text(localeProvider.translate('items_added_cart'))),
             ],
           ),
           backgroundColor: Colors.green,
@@ -230,13 +263,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           action: SnackBarAction(
-            label: 'VOIR PANIER',
+            label: localeProvider.translate('view_cart_btn'),
             textColor: Colors.white,
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const MainNavigationScreen(initialIndex: 2),
+                  builder: (context) =>
+                      const MainNavigationScreen(initialIndex: 2),
                 ),
                 (route) => false,
               );
@@ -250,11 +284,12 @@ class _OrdersScreenState extends State<OrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final orderProvider = Provider.of<OrderProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Mes Commandes'),
+        title: Text(localeProvider.translate('orders_title')),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.brown[700],
         foregroundColor: Colors.white,
         actions: [
@@ -268,14 +303,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   showDialog(
                     context: context,
                     builder: (ctx) => AlertDialog(
-                      title: const Text('Supprimer les commandes terminées ?'),
-                      content: const Text(
-                        'Voulez-vous supprimer toutes les commandes livrées et annulées ?',
+                      title: Text(
+                          localeProvider.translate('delete_completed_title')),
+                      content: Text(
+                        localeProvider.translate('delete_completed_confirm'),
                       ),
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.pop(ctx),
-                          child: const Text('Annuler'),
+                          child: Text(localeProvider.translate('cancel')),
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -283,9 +319,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                             if (ctx.mounted) {
                               Navigator.pop(ctx);
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text('Commandes terminées supprimées'),
+                                SnackBar(
+                                  content: Text(localeProvider
+                                      .translate('completed_orders_deleted')),
                                   behavior: SnackBarBehavior.floating,
                                 ),
                               );
@@ -294,8 +330,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.orange,
                           ),
-                          child: const Text('Supprimer',
-                              style: TextStyle(color: Colors.white)),
+                          child: Text(localeProvider.translate('delete_btn'),
+                              style: const TextStyle(color: Colors.white)),
                         ),
                       ],
                     ),
@@ -303,24 +339,25 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear_completed',
                   child: Row(
                     children: [
-                      Icon(Icons.cleaning_services, size: 20),
-                      SizedBox(width: 8),
-                      Text('Supprimer les terminées'),
+                      const Icon(Icons.cleaning_services, size: 20),
+                      const SizedBox(width: 8),
+                      Text(localeProvider.translate('delete_completed_btn')),
                     ],
                   ),
                 ),
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: 'clear_all',
                   child: Row(
                     children: [
-                      Icon(Icons.delete_sweep, size: 20, color: Colors.red),
-                      SizedBox(width: 8),
-                      Text('Vider l\'historique',
-                          style: TextStyle(color: Colors.red)),
+                      const Icon(Icons.delete_sweep,
+                          size: 20, color: Colors.red),
+                      const SizedBox(width: 8),
+                      Text(localeProvider.translate('clear_history_btn'),
+                          style: const TextStyle(color: Colors.red)),
                     ],
                   ),
                 ),
@@ -328,7 +365,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
         ],
       ),
-      // #28 — Empty state animé + #32 — Pull-to-refresh
       body: orderProvider.orders.isEmpty
           ? Center(
               child: Column(
@@ -344,7 +380,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       duration: 1500.ms),
                   const SizedBox(height: 24),
                   Text(
-                    'Aucune commande',
+                    localeProvider.translate('empty_orders_title'),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
@@ -356,7 +392,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                       .slideY(begin: 0.2, end: 0),
                   const SizedBox(height: 8),
                   Text(
-                    'Vos commandes apparaîtront ici',
+                    localeProvider.translate('empty_orders_subtitle'),
                     style: TextStyle(
                       fontSize: 14,
                       color: isDark ? Colors.grey[600] : Colors.grey[500],
@@ -368,7 +404,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           : RefreshIndicator(
               color: Colors.brown[700],
               onRefresh: () async {
-                HapticFeedback.mediumImpact(); // #31
+                HapticFeedback.mediumImpact();
                 await orderProvider.loadOrders();
               },
               child: ListView.builder(
@@ -412,12 +448,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         Container(
                                           padding: const EdgeInsets.all(8),
                                           decoration: BoxDecoration(
-                                            color: Colors.white.withValues(alpha: 0.3),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.3),
                                             shape: BoxShape.circle,
                                           ),
                                           child: Text(
                                             order.getStatusIcon(),
-                                            style: const TextStyle(fontSize: 24),
+                                            style:
+                                                const TextStyle(fontSize: 24),
                                           ),
                                         ),
                                         const SizedBox(width: 12),
@@ -427,7 +465,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Commande $orderNumber',
+                                                '${localeProvider.translate('order_label')} $orderNumber',
                                                 style: const TextStyle(
                                                   color: Colors.white,
                                                   fontSize: 18,
@@ -436,11 +474,10 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                               Text(
-                                                DateFormat('dd/MM/yyyy à HH:mm')
-                                                    .format(order.dateTime),
+                                                '${DateFormat('dd/MM/yyyy').format(order.dateTime)} ${localeProvider.translate('time_at')} ${DateFormat('HH:mm').format(order.dateTime)}',
                                                 style: TextStyle(
-                                                  color:
-                                                      Colors.white.withValues(alpha: 0.9),
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.9),
                                                   fontSize: 12,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
@@ -465,10 +502,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                 ],
                               ),
-
                               const SizedBox(height: 12),
-
-                              // Badge de statut
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -479,7 +513,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   borderRadius: BorderRadius.circular(20),
                                 ),
                                 child: Text(
-                                  order.status.label,
+                                  _getStatusLabel(order.status, localeProvider),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
@@ -487,7 +521,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                 ),
                               ),
-
                               if (order.status != OrderStatus.delivered &&
                                   order.status != OrderStatus.cancelled) ...[
                                 const SizedBox(height: 16),
@@ -511,7 +544,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                           const SizedBox(width: 8),
                                           Flexible(
                                             child: Text(
-                                              'Temps restant: ${order.remainingMinutes.toString().padLeft(2, '0')}:${order.remainingSeconds.toString().padLeft(2, '0')}',
+                                              '${localeProvider.translate('remaining_time')}: ${order.remainingMinutes.toString().padLeft(2, '0')}:${order.remainingSeconds.toString().padLeft(2, '0')}',
                                               style: const TextStyle(
                                                 color: Colors.white,
                                                 fontSize: 20,
@@ -524,24 +557,61 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         ],
                                       ),
                                       if (order.status == OrderStatus.cancelled)
-                                        const Padding(
-                                          padding: EdgeInsets.symmetric(vertical: 16),
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                              vertical: 16),
                                           child: Center(
-                                            child: Text('Commande annulée', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
+                                            child: Text(
+                                                localeProvider.translate(
+                                                    'order_cancelled'),
+                                                style: const TextStyle(
+                                                    color: Colors.redAccent,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 16)),
                                           ),
                                         )
                                       else ...[
                                         const SizedBox(height: 16),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceBetween,
                                           children: [
-                                            _buildTimelineStep(Icons.receipt_long, 'Reçue', order.status.index >= OrderStatus.pending.index),
-                                            _buildTimelineLine(order.status.index >= OrderStatus.preparing.index),
-                                            _buildTimelineStep(Icons.soup_kitchen, 'Prépa', order.status.index >= OrderStatus.preparing.index),
-                                            _buildTimelineLine(order.status.index >= OrderStatus.delivering.index),
-                                            _buildTimelineStep(Icons.delivery_dining, 'En route', order.status.index >= OrderStatus.delivering.index),
-                                            _buildTimelineLine(order.status.index >= OrderStatus.delivered.index),
-                                            _buildTimelineStep(Icons.check_circle, 'Livré', order.status.index >= OrderStatus.delivered.index),
+                                            _buildTimelineStep(
+                                                Icons.receipt_long,
+                                                localeProvider
+                                                    .translate('received_step'),
+                                                order.status.index >=
+                                                    OrderStatus.pending.index),
+                                            _buildTimelineLine(order
+                                                    .status.index >=
+                                                OrderStatus.preparing.index),
+                                            _buildTimelineStep(
+                                                Icons.soup_kitchen,
+                                                localeProvider
+                                                    .translate('prepa_step'),
+                                                order.status.index >=
+                                                    OrderStatus
+                                                        .preparing.index),
+                                            _buildTimelineLine(order
+                                                    .status.index >=
+                                                OrderStatus.delivering.index),
+                                            _buildTimelineStep(
+                                                Icons.delivery_dining,
+                                                localeProvider.translate(
+                                                    'delivering_step'),
+                                                order.status.index >=
+                                                    OrderStatus
+                                                        .delivering.index),
+                                            _buildTimelineLine(order
+                                                    .status.index >=
+                                                OrderStatus.delivered.index),
+                                            _buildTimelineStep(
+                                                Icons.check_circle,
+                                                localeProvider.translate(
+                                                    'delivered_step'),
+                                                order.status.index >=
+                                                    OrderStatus
+                                                        .delivered.index),
                                           ],
                                         ),
                                       ],
@@ -549,9 +619,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                 ),
                               ],
-
                               const SizedBox(height: 12),
-
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 16,
@@ -571,7 +639,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        order.getStatusMessage(),
+                                        _getStatusMessage(
+                                            order.status, localeProvider),
                                         style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 14,
@@ -581,12 +650,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ],
                                 ),
                               ),
-
-                              // BOUTONS ANNULER / SUPPRIMER / RE-COMMANDER
                               const SizedBox(height: 12),
                               Row(
                                 children: [
-                                  // Bouton ANNULER (pour commandes en cours)
                                   if (order.canCancel)
                                     Expanded(
                                       child: OutlinedButton.icon(
@@ -594,7 +660,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                             _showCancelDialog(context, order),
                                         icon: const Icon(Icons.cancel_outlined,
                                             size: 18),
-                                        label: const Text('Annuler'),
+                                        label: Text(
+                                            localeProvider.translate('cancel')),
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: Colors.white,
                                           side: const BorderSide(
@@ -602,8 +669,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         ),
                                       ),
                                     ),
-
-                                  // Bouton SUPPRIMER (pour commandes terminées)
                                   if (order.isCompleted) ...[
                                     Expanded(
                                       child: OutlinedButton.icon(
@@ -611,7 +676,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                             _showDeleteDialog(context, order),
                                         icon: const Icon(Icons.delete_outline,
                                             size: 18),
-                                        label: const Text('Supprimer'),
+                                        label: Text(localeProvider
+                                            .translate('delete_btn')),
                                         style: OutlinedButton.styleFrom(
                                           foregroundColor: Colors.white,
                                           side: const BorderSide(
@@ -620,14 +686,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
-                                    // #23 — Bouton Re-commander
                                     Expanded(
                                       child: ElevatedButton.icon(
                                         onPressed: () =>
                                             _handleReorder(context, order),
                                         icon:
                                             const Icon(Icons.replay, size: 18),
-                                        label: const Text('Re-commander'),
+                                        label: Text(localeProvider
+                                            .translate('reorder_btn')),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Colors.white,
                                           foregroundColor:
@@ -645,7 +711,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           tilePadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 8),
                           title: Text(
-                            'Voir les détails',
+                            localeProvider.translate('view_details'),
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
                               color: isDark ? Colors.white : Colors.black87,
@@ -661,7 +727,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Articles commandés :',
+                                    localeProvider.translate('ordered_items'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -708,7 +774,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                           : null),
                                   const SizedBox(height: 10),
                                   Text(
-                                    'Informations de livraison :',
+                                    localeProvider.translate('delivery_info'),
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
@@ -726,8 +792,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       Icons.location_on, order.address, isDark),
                                   _buildInfoRow(
                                       Icons.location_city, order.city, isDark),
-                                  _buildInfoRow(Icons.payment,
-                                      order.paymentMethod, isDark),
+                                  _buildInfoRow(
+                                      Icons.payment,
+                                      getLocalizedPaymentMethod(
+                                          order.paymentMethod, localeProvider),
+                                      isDark),
                                 ],
                               ),
                             ),
@@ -738,7 +807,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   );
                 },
               ),
-            ), // Close RefreshIndicator
+            ),
     );
   }
 
@@ -780,6 +849,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
+  String getLocalizedPaymentMethod(
+      String method, LocaleProvider localeProvider) {
+    if (method == 'Espèces') {
+      return localeProvider.translate('cash_on_delivery');
+    } else if (method == 'Carte bancaire') {
+      return localeProvider.translate('credit_card');
+    }
+    return method;
+  }
+
   Widget _buildTimelineStep(IconData icon, String label, bool isActive) {
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -787,16 +866,22 @@ class _OrdersScreenState extends State<OrdersScreen> {
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
+            color:
+                isActive ? Colors.white : Colors.white.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: isActive ? Colors.brown[700] : Colors.white.withValues(alpha: 0.5), size: 16),
+          child: Icon(icon,
+              color: isActive
+                  ? Colors.brown[700]
+                  : Colors.white.withValues(alpha: 0.5),
+              size: 16),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.5),
+            color:
+                isActive ? Colors.white : Colors.white.withValues(alpha: 0.5),
             fontSize: 9,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),

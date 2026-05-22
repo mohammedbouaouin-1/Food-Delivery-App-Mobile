@@ -13,18 +13,18 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _rememberMe = false;
-  
-  // emails sauvegardés 
+
   List<String> _savedEmails = [];
   late final FocusNode _emailFocusNode = FocusNode();
-  
+
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -36,21 +36,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
     );
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
     );
-    
+
     _animationController.forward();
-    
-    //  Charger la liste des emails sauvegardés
+
     _loadSavedEmails();
   }
 
@@ -63,72 +62,62 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     super.dispose();
   }
 
-  //  CHARGER LA LISTE DES EMAILS SAUVEGARDÉS juste comme prop
   Future<void> _loadSavedEmails() async {
     final prefs = await SharedPreferences.getInstance();
     final emailsList = prefs.getStringList('saved_emails_list') ?? [];
-    
+
     setState(() {
       _savedEmails = emailsList;
-    
     });
   }
 
-  // 💾 SAUVEGARDER UN  EMAIL 
   Future<void> _saveEmailToList(String email) async {
     if (email.isEmpty || !email.contains('@')) return;
-    
+
     final prefs = await SharedPreferences.getInstance();
-    
 
-    
     List<String> emailsList = prefs.getStringList('saved_emails_list') ?? [];
-    
 
-    
     if (!emailsList.contains(email)) {
       emailsList.add(email);
       await prefs.setStringList('saved_emails_list', emailsList);
     }
   }
 
-  //  CONNEXION AVEC EMAIL/MOT DE PASSE
   Future<void> _handleLogin() async {
     if (_formKey.currentState!.validate()) {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       final success = await authProvider.signIn(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      
+
       if (!mounted) return;
-      
+
       if (success) {
-       
         if (_rememberMe) {
           await _saveEmailToList(_emailController.text.trim());
         }
-        
+
         if (!mounted) return;
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
         );
       } else {
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authProvider.errorMessage ?? 'Erreur de connexion'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
     }
   }
 
-  // MOT DE PASSE OUBLIÉ
   Future<void> _handleForgotPassword() async {
     if (_emailController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -140,22 +129,26 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       );
       return;
     }
-    
+
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final success = await authProvider.resetPassword(_emailController.text.trim());
-    
+    final success =
+        await authProvider.resetPassword(_emailController.text.trim());
+
     if (!mounted) return;
-    
+
     if (success) {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           title: const Row(
             children: [
               Icon(Icons.mark_email_read, color: Colors.green, size: 30),
               SizedBox(width: 10),
-              Expanded(child: Text('Email envoyé !', style: TextStyle(fontSize: 20))),
+              Expanded(
+                  child:
+                      Text('Email envoyé !', style: TextStyle(fontSize: 20))),
             ],
           ),
           content: const Text(
@@ -165,7 +158,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('OK', style: TextStyle(color: Colors.brown[700], fontWeight: FontWeight.bold)),
+              child: Text('OK',
+                  style: TextStyle(
+                      color: Colors.brown[700], fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -173,7 +168,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Erreur lors de l\'envoi de l\'email'),
+          content: Text(authProvider.errorMessage ??
+              'Erreur lors de l\'envoi de l\'email'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
@@ -181,14 +177,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     }
   }
 
-  //  CONNEXION AVEC GOOGLE
   Future<void> _handleGoogleSignIn() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     final success = await authProvider.signInWithGoogle();
-    
+
     if (!mounted) return;
-    
+
     if (success) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
@@ -196,10 +191,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(authProvider.errorMessage ?? 'Erreur de connexion avec Google'),
+          content: Text(
+              authProvider.errorMessage ?? 'Erreur de connexion avec Google'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
@@ -208,7 +205,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -233,8 +230,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-
-                      //  LOGO ET TITRE
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
@@ -272,8 +267,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         ),
                       ),
                       const SizedBox(height: 50),
-                      
-                      //  FORMULAIRE DE CONNEXION
                       Container(
                         padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
@@ -291,20 +284,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                           key: _formKey,
                           child: Column(
                             children: [
-                              
                               RawAutocomplete<String>(
                                 focusNode: _emailFocusNode,
                                 textEditingController: _emailController,
-                                optionsBuilder: (TextEditingValue textEditingValue) {
-                                  
+                                optionsBuilder:
+                                    (TextEditingValue textEditingValue) {
                                   if (textEditingValue.text.isEmpty) {
                                     return const Iterable<String>.empty();
                                   }
-                                  
+
                                   return _savedEmails.where((String email) {
                                     return email.toLowerCase().contains(
-                                      textEditingValue.text.toLowerCase(),
-                                    );
+                                          textEditingValue.text.toLowerCase(),
+                                        );
                                   });
                                 },
                                 onSelected: (String selection) {
@@ -314,7 +306,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 },
                                 fieldViewBuilder: (
                                   BuildContext context,
-                                  TextEditingController fieldTextEditingController,
+                                  TextEditingController
+                                      fieldTextEditingController,
                                   FocusNode fieldFocusNode,
                                   VoidCallback onFieldSubmitted,
                                 ) {
@@ -326,13 +319,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     decoration: InputDecoration(
                                       labelText: 'Email',
                                       hintText: 'exemple@email.com',
-                                      prefixIcon: Icon(Icons.email, color: Colors.brown[700]),
+                                      prefixIcon: Icon(Icons.email,
+                                          color: Colors.brown[700]),
                                       border: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                                        borderSide: BorderSide(
+                                            color: Colors.brown[700]!,
+                                            width: 2),
                                       ),
                                     ),
                                     validator: Validators.validateEmail,
@@ -349,39 +345,46 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       elevation: 4.0,
                                       borderRadius: BorderRadius.circular(8),
                                       child: Container(
-                                        constraints: const BoxConstraints(maxHeight: 200),
-                                        width: MediaQuery.of(context).size.width - 48,
+                                        constraints: const BoxConstraints(
+                                            maxHeight: 200),
+                                        width:
+                                            MediaQuery.of(context).size.width -
+                                                48,
                                         child: ListView.builder(
                                           padding: EdgeInsets.zero,
                                           shrinkWrap: true,
                                           itemCount: options.length,
-                                          itemBuilder: (BuildContext context, int index) {
-                                            final String option = options.elementAt(index);
+                                          itemBuilder: (BuildContext context,
+                                              int index) {
+                                            final String option =
+                                                options.elementAt(index);
                                             return InkWell(
                                               onTap: () {
                                                 onSelected(option);
                                               },
                                               child: Container(
-                                                padding: const EdgeInsets.all(16),
+                                                padding:
+                                                    const EdgeInsets.all(16),
                                                 decoration: BoxDecoration(
                                                   border: Border(
                                                     bottom: BorderSide(
-                                                      color: Colors.grey.shade200,
+                                                      color:
+                                                          Colors.grey.shade200,
                                                       width: 1,
                                                     ),
                                                   ),
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    Icon(Icons.email_outlined, 
-                                                      color: Colors.grey[600], 
-                                                      size: 20
-                                                    ),
+                                                    Icon(Icons.email_outlined,
+                                                        color: Colors.grey[600],
+                                                        size: 20),
                                                     const SizedBox(width: 12),
                                                     Expanded(
                                                       child: Text(
                                                         option,
-                                                        style: const TextStyle(fontSize: 15),
+                                                        style: const TextStyle(
+                                                            fontSize: 15),
                                                       ),
                                                     ),
                                                   ],
@@ -396,18 +399,19 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 },
                               ),
                               const SizedBox(height: 20),
-                              
-                              
                               TextFormField(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 decoration: InputDecoration(
                                   labelText: 'Mot de passe',
                                   hintText: 'Minimum 6 caractères',
-                                  prefixIcon: Icon(Icons.lock, color: Colors.brown[700]),
+                                  prefixIcon: Icon(Icons.lock,
+                                      color: Colors.brown[700]),
                                   suffixIcon: IconButton(
                                     icon: Icon(
-                                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                      _obscurePassword
+                                          ? Icons.visibility_off
+                                          : Icons.visibility,
                                       color: Colors.grey,
                                     ),
                                     onPressed: () {
@@ -421,20 +425,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
-                                    borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                                    borderSide: BorderSide(
+                                        color: Colors.brown[700]!, width: 2),
                                   ),
                                 ),
                                 validator: Validators.validatePassword,
                               ),
-                              
                               const SizedBox(height: 15),
-                              
-                              
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
-
-                                  // SE SOUVENIR DE MOI
                                   Expanded(
                                     child: Row(
                                       children: [
@@ -462,14 +463,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       ],
                                     ),
                                   ),
-                                  // 🔑 BOUTON MOT DE PASSE OUBLIÉ
                                   Flexible(
                                     child: TextButton(
                                       onPressed: _handleForgotPassword,
                                       style: TextButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8),
                                         minimumSize: Size.zero,
-                                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
                                       ),
                                       child: Text(
                                         'Mot de passe oublié ?',
@@ -484,16 +486,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ),
                                 ],
                               ),
-                              
                               const SizedBox(height: 25),
-                              
-
-                              // BOUTON DE CONNEXION
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
                                 child: ElevatedButton(
-                                  onPressed: authProvider.isLoading ? null : _handleLogin,
+                                  onPressed: authProvider.isLoading
+                                      ? null
+                                      : _handleLogin,
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.brown[700],
                                     shape: RoundedRectangleBorder(
@@ -520,16 +520,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         ),
                                 ),
                               ),
-                              
                               const SizedBox(height: 25),
-                              
-
-                              //  SÉPARATEUR "OU"
                               Row(
                                 children: [
-                                  Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 16),
                                     child: Text(
                                       'OU',
                                       style: TextStyle(
@@ -538,20 +538,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       ),
                                     ),
                                   ),
-                                  Expanded(child: Divider(color: Colors.grey[300], thickness: 1)),
+                                  Expanded(
+                                      child: Divider(
+                                          color: Colors.grey[300],
+                                          thickness: 1)),
                                 ],
                               ),
-                              
                               const SizedBox(height: 25),
-                              
-                              //  BOUTON GOOGLE
                               SizedBox(
                                 width: double.infinity,
                                 height: 55,
                                 child: OutlinedButton.icon(
-                                  onPressed: authProvider.isLoading ? null : _handleGoogleSignIn,
+                                  onPressed: authProvider.isLoading
+                                      ? null
+                                      : _handleGoogleSignIn,
                                   style: OutlinedButton.styleFrom(
-                                    side: BorderSide(color: Colors.grey[300]!, width: 2),
+                                    side: BorderSide(
+                                        color: Colors.grey[300]!, width: 2),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -575,14 +578,22 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                           fontFamily: 'GoogleSans',
                                           foreground: Paint()
                                             ..shader = const LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
                                               colors: [
-                                                Colors.blue,
-                                                Colors.red,
-                                                Colors.yellow,
-                                                Colors.green,
+                                                Color(0xFF4285F4), 
+                                                Color(0xFFEA4335), 
+                                                Color(0xFFFBBC05), 
+                                                Color(0xFF34A853), 
                                               ],
-                                              stops: [0.25, 0.5, 0.75, 1.0],
-                                            ).createShader(const Rect.fromLTWH(0.0, 0.0, 24.0, 24.0)),
+                                              stops: [0.0, 0.33, 0.66, 1.0],
+                                            ).createShader(
+                                              const Rect.fromLTWH(
+                                                  0.0,
+                                                  0.0,
+                                                  60.0,
+                                                  60.0), 
+                                            ),
                                         ),
                                       ),
                                     ],
@@ -597,24 +608,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   ),
                                 ),
                               ),
-                              
                               const SizedBox(height: 25),
-                              
-                              // LIEN VERS INSCRIPTION
                               TextButton(
                                 onPressed: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => const RegisterScreen(),
+                                      builder: (context) =>
+                                          const RegisterScreen(),
                                     ),
                                   );
                                 },
                                 child: RichText(
                                   text: TextSpan(
-                                    style: const TextStyle(color: Colors.black87, fontSize: 14),
+                                    style: const TextStyle(
+                                        color: Colors.black87, fontSize: 14),
                                     children: [
-                                      const TextSpan(text: 'Pas encore de compte ? '),
+                                      const TextSpan(
+                                          text: 'Pas encore de compte ? '),
                                       TextSpan(
                                         text: 'S\'inscrire',
                                         style: TextStyle(

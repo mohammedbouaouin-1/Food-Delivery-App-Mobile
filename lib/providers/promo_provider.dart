@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class PromoProvider extends ChangeNotifier {
-  // Promo codes (in a real app, these would come from a backend)
   static const Map<String, double> _promoCodes = {
     'WELCOME10': 0.10,
     'FOOD20': 0.20,

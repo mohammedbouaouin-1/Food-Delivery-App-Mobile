@@ -18,7 +18,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
@@ -46,18 +46,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
         return;
       }
-      
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      
+
       final success = await authProvider.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text,
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
       );
-      
+
       if (!mounted) return;
-      
+
       if (success) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
@@ -68,7 +68,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             content: Text(authProvider.errorMessage ?? 'Erreur d\'inscription'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -78,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -97,7 +98,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             padding: const EdgeInsets.all(24),
             child: Column(
               children: [
-                // Header
                 Row(
                   children: [
                     IconButton(
@@ -107,8 +107,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                
-                // Logo
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -129,7 +127,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
                 const Text(
                   'Créer un compte',
                   style: TextStyle(
@@ -147,8 +144,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
                 ),
                 const SizedBox(height: 40),
-                
-                // Formulaire
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -166,73 +161,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // Nom complet
                         TextFormField(
                           controller: _nameController,
                           decoration: InputDecoration(
                             labelText: 'Nom complet',
-                            prefixIcon: Icon(Icons.person, color: Colors.brown[700]),
+                            prefixIcon:
+                                Icon(Icons.person, color: Colors.brown[700]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                              borderSide: BorderSide(
+                                  color: Colors.brown[700]!, width: 2),
                             ),
                           ),
                           validator: Validators.validateName,
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Email
                         TextFormField(
                           controller: _emailController,
                           keyboardType: TextInputType.emailAddress,
                           decoration: InputDecoration(
                             labelText: 'Email',
-                            prefixIcon: Icon(Icons.email, color: Colors.brown[700]),
+                            prefixIcon:
+                                Icon(Icons.email, color: Colors.brown[700]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                              borderSide: BorderSide(
+                                  color: Colors.brown[700]!, width: 2),
                             ),
                           ),
                           validator: Validators.validateEmail,
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Téléphone
                         TextFormField(
                           controller: _phoneController,
                           keyboardType: TextInputType.phone,
                           decoration: InputDecoration(
                             labelText: 'Téléphone',
-                            prefixIcon: Icon(Icons.phone, color: Colors.brown[700]),
+                            prefixIcon:
+                                Icon(Icons.phone, color: Colors.brown[700]),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                              borderSide: BorderSide(
+                                  color: Colors.brown[700]!, width: 2),
                             ),
                           ),
                           validator: Validators.validatePhone,
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Mot de passe
                         TextFormField(
                           controller: _passwordController,
                           obscureText: _obscurePassword,
-                          onChanged: (value) => _passwordNotifier.value = value, // #27 — Trigger notifier update for strength indicator
+                          onChanged: (value) => _passwordNotifier.value = value,
                           decoration: InputDecoration(
                             labelText: 'Mot de passe',
-                            prefixIcon: Icon(Icons.lock, color: Colors.brown[700]),
+                            prefixIcon:
+                                Icon(Icons.lock, color: Colors.brown[700]),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                _obscurePassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.grey,
                               ),
                               onPressed: () {
@@ -246,16 +243,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                              borderSide: BorderSide(
+                                  color: Colors.brown[700]!, width: 2),
                             ),
                           ),
                           validator: Validators.validatePassword,
                         ),
-                        // #27 — Indicateur de force du mot de passe
                         ValueListenableBuilder<String>(
                           valueListenable: _passwordNotifier,
                           builder: (context, password, child) {
-                            if (password.isEmpty) return const SizedBox.shrink();
+                            if (password.isEmpty)
+                              return const SizedBox.shrink();
                             return Padding(
                               padding: const EdgeInsets.only(top: 8, bottom: 8),
                               child: _buildPasswordStrengthIndicator(password),
@@ -263,22 +261,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           },
                         ),
                         const SizedBox(height: 16),
-                        
-                        // Confirmer mot de passe
                         TextFormField(
                           controller: _confirmPasswordController,
                           obscureText: _obscureConfirmPassword,
                           decoration: InputDecoration(
                             labelText: 'Confirmer le mot de passe',
-                            prefixIcon: Icon(Icons.lock_outline, color: Colors.brown[700]),
+                            prefixIcon: Icon(Icons.lock_outline,
+                                color: Colors.brown[700]),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                _obscureConfirmPassword
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
                                 color: Colors.grey,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  _obscureConfirmPassword = !_obscureConfirmPassword;
+                                  _obscureConfirmPassword =
+                                      !_obscureConfirmPassword;
                                 });
                               },
                             ),
@@ -287,7 +287,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.brown[700]!, width: 2),
+                              borderSide: BorderSide(
+                                  color: Colors.brown[700]!, width: 2),
                             ),
                           ),
                           validator: (value) {
@@ -300,8 +301,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             return null;
                           },
                         ),
-                        
-                        // Accepter les conditions
                         Row(
                           children: [
                             Checkbox(
@@ -324,15 +323,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ],
                         ),
-                        
                         const SizedBox(height: 20),
-                        
-                        // Bouton d'inscription
                         SizedBox(
                           width: double.infinity,
                           height: 55,
                           child: ElevatedButton(
-                            onPressed: authProvider.isLoading ? null : _handleRegister,
+                            onPressed:
+                                authProvider.isLoading ? null : _handleRegister,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.brown[700],
                               shape: RoundedRectangleBorder(
@@ -359,10 +356,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                   ),
                           ),
                         ),
-                        
                         const SizedBox(height: 20),
-                        
-                        // Retour à la connexion
                         TextButton(
                           onPressed: () => Navigator.pop(context),
                           child: RichText(
@@ -393,7 +387,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // #27 — Indicateur de force du mot de passe
   Widget _buildPasswordStrengthIndicator(String password) {
     double strength = 0;
     String label = '';

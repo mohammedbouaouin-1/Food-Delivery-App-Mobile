@@ -10,7 +10,6 @@ class AppConstants {
   static const double maxRating = 5.0;
   static const double minRating = 0.0;
 
-  // Rating badge thresholds
   static const double excellentRatingThreshold = 4.5;
   static const double goodRatingThreshold = 3.5;
   static const double averageRatingThreshold = 2.5;

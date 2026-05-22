@@ -7,7 +7,7 @@ enum OrderStatus {
   delivering('En livraison', '🚗'),
   delivered('Livrée', '✅'),
   cancelled('Annulée', '❌');
-  
+
   final String label;
   final String emoji;
   const OrderStatus(this.label, this.emoji);
@@ -30,7 +30,7 @@ class Order {
   final double deliveryFee;
   final String? notes;
   DateTime? deliveredAt;
-  
+
   Order({
     required this.id,
     required this.items,
@@ -49,17 +49,14 @@ class Order {
     this.notes,
     this.deliveredAt,
   });
-  
-  
+
   int get totalEstimatedSeconds => remainingMinutes * 60;
-  
-  
+
   int get elapsedSeconds {
     int remaining = (remainingMinutes * 60) + remainingSeconds;
     return totalEstimatedSeconds - remaining;
   }
-  
- 
+
   double getProgress() {
     if (status == OrderStatus.delivered || status == OrderStatus.cancelled) {
       return 1.0;
@@ -67,12 +64,8 @@ class Order {
     int totalSeconds = (remainingMinutes * 60) + remainingSeconds;
     return 1 - (totalSeconds / totalEstimatedSeconds);
   }
-  
-  
 
   String getStatusIcon() => status.emoji;
-  
- 
 
   String getStatusMessage() {
     switch (status) {
@@ -88,33 +81,26 @@ class Order {
         return 'Cette commande a été annulée';
     }
   }
-  
 
   int get totalItems {
     return items.fold(0, (sum, item) => sum + item.quantity);
   }
-  
- 
-  double get subtotal => totalAmount - deliveryFee;
-  
 
+  double get subtotal => totalAmount - deliveryFee;
 
   bool get canCancel {
     return status == OrderStatus.pending || status == OrderStatus.preparing;
   }
 
-
   bool get isCompleted {
     return status == OrderStatus.delivered || status == OrderStatus.cancelled;
   }
-  
-  
+
   String get formattedRemainingTime {
     if (isCompleted) return '00:00';
     return '${remainingMinutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
   }
-  
-  
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
@@ -135,12 +121,13 @@ class Order {
       'deliveredAt': deliveredAt?.toIso8601String(),
     };
   }
-  
-  
+
   factory Order.fromMap(Map<String, dynamic> map) {
     DateTime parsedDateTime;
     try {
-      parsedDateTime = map['dateTime'] != null ? DateTime.parse(map['dateTime']) : DateTime.now();
+      parsedDateTime = map['dateTime'] != null
+          ? DateTime.parse(map['dateTime'])
+          : DateTime.now();
     } catch (_) {
       parsedDateTime = DateTime.now();
     }
@@ -157,8 +144,9 @@ class Order {
     return Order(
       id: map['id'] ?? '',
       items: (map['items'] as List?)
-          ?.map((item) => CartItem.fromMap(item))
-          .toList() ?? [],
+              ?.map((item) => CartItem.fromMap(item))
+              .toList() ??
+          [],
       totalAmount: (map['totalAmount'] ?? 0).toDouble(),
       dateTime: parsedDateTime,
       customerName: map['customerName'] ?? '',
@@ -178,8 +166,7 @@ class Order {
       deliveredAt: parsedDeliveredAt,
     );
   }
-  
- 
+
   Order copyWith({
     String? id,
     List<CartItem>? items,

@@ -4,9 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/review.dart';
 import '../data/app_constants.dart';
 
-/// Provider pour gérer les avis utilisateurs avec persistance
 class ReviewProvider extends ChangeNotifier {
-  // Stockage des avis par foodItemId
   final Map<String, List<Review>> _reviews = {};
   ReviewProvider() {
     _initializeReviews();
@@ -16,7 +14,6 @@ class ReviewProvider extends ChangeNotifier {
     await _loadReviews();
   }
 
-  /// Charger les avis depuis SharedPreferences
   Future<void> _loadReviews() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -38,7 +35,6 @@ class ReviewProvider extends ChangeNotifier {
     }
   }
 
-  /// Sauvegarder les avis dans SharedPreferences
   Future<void> _saveReviews() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -52,17 +48,14 @@ class ReviewProvider extends ChangeNotifier {
     }
   }
 
-  /// Obtenir les avis d'un plat
   List<Review> getReviews(String foodItemId) {
     return _reviews[foodItemId] ?? [];
   }
 
-  /// Nombre d'avis pour un plat
   int getReviewCount(String foodItemId) {
     return _reviews[foodItemId]?.length ?? 0;
   }
 
-  /// Note moyenne d'un plat
   double getAverageRating(String foodItemId) {
     final reviews = _reviews[foodItemId];
     if (reviews == null || reviews.isEmpty) return 0.0;
@@ -70,7 +63,6 @@ class ReviewProvider extends ChangeNotifier {
     return double.parse((total / reviews.length).toStringAsFixed(1));
   }
 
-  /// Ajouter un avis
   Future<void> addReview({
     required String foodItemId,
     required String userId,
@@ -78,13 +70,13 @@ class ReviewProvider extends ChangeNotifier {
     required double rating,
     required String comment,
   }) async {
-    // Valider le rating
-    final clampedRating = rating.clamp(AppConstants.minRating, AppConstants.maxRating);
+    final clampedRating =
+        rating.clamp(AppConstants.minRating, AppConstants.maxRating);
 
-    // Valider le commentaire
     String trimmedComment = comment.trim();
     if (trimmedComment.length > AppConstants.maxReviewLength) {
-      trimmedComment = trimmedComment.substring(0, AppConstants.maxReviewLength);
+      trimmedComment =
+          trimmedComment.substring(0, AppConstants.maxReviewLength);
     }
 
     final review = Review(
@@ -98,12 +90,11 @@ class ReviewProvider extends ChangeNotifier {
     );
 
     _reviews.putIfAbsent(foodItemId, () => []);
-    _reviews[foodItemId]!.insert(0, review); // Ajouter en haut
+    _reviews[foodItemId]!.insert(0, review);
     await _saveReviews();
     notifyListeners();
   }
 
-  /// Vérifier si un utilisateur a déjà laissé un avis (basé sur le userId)
   bool hasUserReviewed(String foodItemId, String userId) {
     final reviews = _reviews[foodItemId];
     if (reviews == null || userId.isEmpty) return false;

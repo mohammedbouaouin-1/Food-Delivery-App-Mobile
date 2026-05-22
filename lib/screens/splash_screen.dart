@@ -6,7 +6,6 @@ import 'auth/login_screen.dart';
 import 'main_navigation_screen.dart';
 import 'onboarding_screen.dart';
 
-/// Écran d'accueil avec animation (Amélioration #7)
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -79,9 +78,9 @@ class _SplashScreenState extends State<SplashScreen>
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-      // #20 — Vérifier si l'onboarding a été complété
       final prefs = await SharedPreferences.getInstance();
-      final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
+      final onboardingCompleted =
+          prefs.getBool('onboarding_completed') ?? false;
 
       if (!mounted) return;
 
@@ -94,7 +93,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     } catch (e) {
       debugPrint('Initialization error in SplashScreen: $e');
-      // En cas d'erreur d'initialisation, rediriger vers l'écran de connexion par sécurité
+
       nextScreen = const LoginScreen();
     }
 
@@ -147,7 +146,6 @@ class _SplashScreenState extends State<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo animé
               ScaleTransition(
                 scale: _logoScale,
                 child: Container(
@@ -172,10 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // Nom de l'app
               SlideTransition(
                 position: _textSlide,
                 child: FadeTransition(
@@ -204,10 +199,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                 ),
               ),
-
               const SizedBox(height: 60),
-
-              // Indicateur de chargement
               FadeTransition(
                 opacity: _textOpacity,
                 child: SizedBox(

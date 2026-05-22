@@ -9,7 +9,6 @@ import '../models/order.dart';
 import '../data/app_constants.dart';
 import 'order_success_screen.dart';
 
-
 class CardPaymentScreen extends StatefulWidget {
   final String name;
   final String phone;
@@ -108,9 +107,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final orderProvider = Provider.of<OrderProvider>(context, listen: false);
 
-      // Fix #1: Utiliser les frais centralisés
       final deliveryFee = AppConstants.deliveryFee;
-      final totalAmount = (cartProvider.totalPrice + deliveryFee - widget.discount).clamp(0.0, double.infinity);
+      final totalAmount =
+          (cartProvider.totalPrice + deliveryFee - widget.discount)
+              .clamp(0.0, double.infinity);
 
       final order = Order(
         id: const Uuid().v4(),
@@ -123,15 +123,17 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
         city: widget.city,
         paymentMethod: 'Carte bancaire',
         deliveryFee: deliveryFee,
-        notes: widget.appliedPromoCode != null ? 'Promo: ${widget.appliedPromoCode} (-${widget.discount.toStringAsFixed(0)} ${AppConstants.currency})' : null,
+        notes: widget.appliedPromoCode != null
+            ? 'Promo: ${widget.appliedPromoCode} (-${widget.discount.toStringAsFixed(0)} ${AppConstants.currency})'
+            : null,
       );
 
       orderProvider.addOrder(order);
       final orderNumber = order.id;
 
-      // #3 — Ajouter des points de fidélité
       try {
-        final loyaltyProvider = Provider.of<LoyaltyProvider>(context, listen: false);
+        final loyaltyProvider =
+            Provider.of<LoyaltyProvider>(context, listen: false);
         loyaltyProvider.addPoints(totalAmount);
       } catch (e) {
         debugPrint('Error adding loyalty points: $e');
@@ -139,7 +141,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
 
       cartProvider.clearCart();
 
-      // Amélioration #10: Écran de succès animé
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -173,7 +174,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // #29 — Carte bancaire avec glassmorphism
                   Container(
                     height: 210,
                     width: double.infinity,
@@ -207,7 +207,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                     ),
                     child: Stack(
                       children: [
-                        // Shine effect
                         Positioned(
                           top: -30,
                           right: -30,
@@ -242,7 +241,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             ),
                           ),
                         ),
-                        // Card content
                         Padding(
                           padding: const EdgeInsets.all(24),
                           child: Column(
@@ -250,7 +248,8 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   const Icon(
                                     Icons.credit_card,
@@ -283,11 +282,13 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                                 ),
                               ),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Text(
                                           'TITULAIRE',
@@ -299,7 +300,8 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                                         Text(
                                           _cardHolderController.text.isEmpty
                                               ? 'VOTRE NOM'
-                                              : _cardHolderController.text.toUpperCase(),
+                                              : _cardHolderController.text
+                                                  .toUpperCase(),
                                           style: const TextStyle(
                                             color: Colors.white,
                                             fontSize: 16,
@@ -312,7 +314,8 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                                   ),
                                   const SizedBox(width: 16),
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'EXPIRE',
@@ -341,9 +344,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
                   Text(
                     'Informations de la carte',
                     style: TextStyle(
@@ -352,9 +353,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
                   TextFormField(
                     controller: _cardNumberController,
                     decoration: InputDecoration(
@@ -376,7 +375,8 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       if (formatted != value) {
                         _cardNumberController.value = TextEditingValue(
                           text: formatted,
-                          selection: TextSelection.collapsed(offset: formatted.length),
+                          selection:
+                              TextSelection.collapsed(offset: formatted.length),
                         );
                       }
                       _detectCardType(cleanValue);
@@ -392,9 +392,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 16),
-
                   TextFormField(
                     controller: _cardHolderController,
                     decoration: InputDecoration(
@@ -419,9 +417,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 16),
-
                   Row(
                     children: [
                       Expanded(
@@ -447,10 +443,10 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                               );
                               _expiryDateController.selection =
                                   TextSelection.fromPosition(
-                                    TextPosition(
-                                      offset: _expiryDateController.text.length,
-                                    ),
-                                  );
+                                TextPosition(
+                                  offset: _expiryDateController.text.length,
+                                ),
+                              );
                             });
                           },
                           validator: (value) {
@@ -472,12 +468,13 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                               return 'Mois invalide';
                             }
 
-                            // Vérifier si la carte est expirée
                             if (year != null) {
                               final now = DateTime.now();
                               final currentYear = now.year % 100;
                               final currentMonth = now.month;
-                              if (year < currentYear || (year == currentYear && month < currentMonth)) {
+                              if (year < currentYear ||
+                                  (year == currentYear &&
+                                      month < currentMonth)) {
                                 return 'Carte expirée';
                               }
                             }
@@ -517,15 +514,18 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 30),
-
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.grey.shade100,
+                      color: isDark
+                          ? const Color(0xFF1E1E1E)
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isDark ? const Color(0xFF3E3E3E) : Colors.grey.shade300),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF3E3E3E)
+                              : Colors.grey.shade300),
                     ),
                     child: Row(
                       children: [
@@ -535,7 +535,9 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                           child: Text(
                             'Paiement sécurisé SSL. Vos données sont protégées.',
                             style: TextStyle(
-                              color: isDark ? Colors.grey[400] : Colors.grey.shade700,
+                              color: isDark
+                                  ? Colors.grey[400]
+                                  : Colors.grey.shade700,
                               fontSize: 13,
                             ),
                           ),
@@ -543,16 +545,17 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 20),
-
-                  
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF1E1E1E) : Colors.brown[50],
+                      color:
+                          isDark ? const Color(0xFF1E1E1E) : Colors.brown[50],
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: isDark ? const Color(0xFF3E3E3E) : Colors.brown.shade200),
+                      border: Border.all(
+                          color: isDark
+                              ? const Color(0xFF3E3E3E)
+                              : Colors.brown.shade200),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -565,9 +568,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
-
-
-                        //  adapter automatiquement la taille du texte
                         Flexible(
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
@@ -584,9 +584,7 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 30),
-
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -630,7 +628,6 @@ class _CardPaymentScreenState extends State<CardPaymentScreen> {
                             ),
                     ),
                   ),
-
                   const SizedBox(height: 20),
                 ],
               ),

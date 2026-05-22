@@ -38,7 +38,6 @@ class AuthProvider extends ChangeNotifier {
     });
   }
 
-  // Charger les données utilisateur depuis SharedPreferences
   Future<void> _loadUserData() async {
     if (_user == null) return;
 
@@ -68,19 +67,18 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Sauvegarder les données utilisateur dans SharedPreferences
   Future<void> _saveUserData() async {
     if (_user == null || _userProfile == null) return;
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('user_${_user!.uid}', json.encode(_userProfile!.toJson()));
+      await prefs.setString(
+          'user_${_user!.uid}', json.encode(_userProfile!.toJson()));
     } catch (e) {
       debugPrint('Erreur lors de la sauvegarde des données: $e');
     }
   }
 
-  // Connexion avec Google
   Future<bool> signInWithGoogle() async {
     try {
       _isLoading = true;
@@ -95,21 +93,21 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
 
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Se connecter à Firebase
-      UserCredential userCredential = await _auth.signInWithCredential(credential);
+      UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
 
       _user = userCredential.user;
 
       await _loadUserData();
 
-      // Si c'est un nouvel utilisateur, créer les données
       if (_userProfile == null) {
         _userProfile = UserProfile(
           name: _user?.displayName ?? 'Utilisateur',
@@ -153,14 +151,12 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Inscription avec email et mot de passe
   Future<bool> signUp({
     required String email,
     required String password,
     required String name,
     required String phone,
   }) async {
-    // Form validation
     final emailError = Validators.validateEmail(email);
     if (emailError != null) {
       _errorMessage = emailError;
@@ -191,8 +187,8 @@ class AuthProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Créer l'utilisateur dans Firebase Auth
-      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
@@ -239,7 +235,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Connexion avec email et mot de passe
   Future<bool> signIn({
     required String email,
     required String password,
@@ -325,7 +320,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Déconnexion
   Future<void> signOut() async {
     try {
       await Future.wait([
@@ -341,7 +335,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  // Récupérer les données utilisateur
   Future<Map<String, dynamic>?> getUserData() async {
     if (_user == null) return null;
 
@@ -368,7 +361,6 @@ class AuthProvider extends ChangeNotifier {
         phone: phone ?? _userProfile?.phone,
       );
 
-      // Sauvegarder les modifications
       await _saveUserData();
 
       notifyListeners();
@@ -380,7 +372,6 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// Sauvegarder les adresses de livraison
   Future<bool> saveAddresses(List<Map<String, String>> addresses) async {
     if (_user == null) return false;
     try {

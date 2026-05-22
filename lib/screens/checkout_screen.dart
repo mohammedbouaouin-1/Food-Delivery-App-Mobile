@@ -1,4 +1,3 @@
-// ignore_for_file: deprecated_member_use
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +7,7 @@ import '../providers/order_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/loyalty_provider.dart';
 import '../providers/promo_provider.dart';
+import '../providers/locale_provider.dart';
 import '../models/order.dart';
 import '../data/app_constants.dart';
 import 'card_payment_screen.dart';
@@ -27,12 +27,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   final _cityController = TextEditingController();
-  final _promoController = TextEditingController(); // #17
+  final _promoController = TextEditingController();
 
   String _paymentMethod = 'Espèces';
   bool _isSubmitting = false;
 
-  // #18 — Adresses sauvegardées
   List<Map<String, String>> _savedAddresses = [];
 
   @override
@@ -45,7 +44,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _prefillUserData() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userData = await authProvider.getUserData();
-    
+
     if (userData != null && mounted) {
       setState(() {
         if (userData['name'] != null && userData['name'].isNotEmpty) {
@@ -61,59 +60,59 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _loadSavedAddresses() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final userData = await authProvider.getUserData();
-    
+
     if (userData != null && userData['addresses'] != null && mounted) {
       setState(() {
         _savedAddresses = List<Map<String, String>>.from(
-          (userData['addresses'] as List).map((a) => Map<String, String>.from(a)),
+          (userData['addresses'] as List)
+              .map((a) => Map<String, String>.from(a)),
         );
       });
     }
   }
 
-  // #18 — Sauvegarder l'adresse
   Future<void> _saveCurrentAddress() async {
     final address = _addressController.text.trim();
     final city = _cityController.text.trim();
-    
+
     if (address.isEmpty || city.isEmpty) return;
 
     final newAddress = {'address': address, 'city': city};
-    
-    // Vérifier si l'adresse existe déjà
+
     final exists = _savedAddresses.any(
       (a) => a['address'] == address && a['city'] == city,
     );
-    
+
     if (!exists) {
       _savedAddresses.add(newAddress);
-      
+
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       await authProvider.saveAddresses(_savedAddresses);
     }
   }
 
-  // #17 — Appliquer le code promo
   void _applyPromoCode() {
     final promoProvider = Provider.of<PromoProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     final code = _promoController.text.trim().toUpperCase();
-    
+
     if (code.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Entrez un code promo'),
+          content: Text(localeProvider.translate('enter_promo_error')),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
-    
+
     final success = promoProvider.applyPromoCode(code);
     if (success) {
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final discount = promoProvider.calculateDiscount(cartProvider.totalPrice);
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -121,13 +120,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Code "$code" appliqué ! -${discount.toStringAsFixed(0)} ${AppConstants.currency}'),
+                child: Text(
+                    'Code "$code" ${localeProvider.translate('promo_applied_success')} -${discount.toStringAsFixed(0)} ${AppConstants.currency}'),
               ),
             ],
           ),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
@@ -154,7 +155,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _submitOrder() async {
     if (_formKey.currentState!.validate()) {
-      if (_isSubmitting) return; // Prevent duplicate taps
+      if (_isSubmitting) return;
 
       final cartProvider = Provider.of<CartProvider>(context, listen: false);
       final promoProvider = Provider.of<PromoProvider>(context, listen: false);
@@ -162,11 +163,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final promoDiscount = promoProvider.calculateDiscount(subtotal);
       final appliedPromoCode = promoProvider.appliedCode;
 
-      // #18 — Sauvegarder l'adresse pour réutilisation
       await _saveCurrentAddress();
-      
+
       if (!mounted) return;
-      
+
       if (_paymentMethod == 'Carte bancaire') {
         Navigator.push(
           context,
@@ -184,15 +184,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } else {
         setState(() => _isSubmitting = true);
 
-        // Simuler un court délai de transaction réseau pour l'UX
         await Future.delayed(const Duration(milliseconds: 1000));
 
         if (!mounted) return;
 
-        final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+        final orderProvider =
+            Provider.of<OrderProvider>(context, listen: false);
 
         final deliveryFee = AppConstants.deliveryFee;
-        final totalAmount = (subtotal + deliveryFee - promoDiscount).clamp(0, double.infinity);
+        final totalAmount =
+            (subtotal + deliveryFee - promoDiscount).clamp(0, double.infinity);
 
         final order = Order(
           id: const Uuid().v4(),
@@ -205,16 +206,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           city: _cityController.text,
           paymentMethod: _paymentMethod,
           deliveryFee: deliveryFee,
-          notes: appliedPromoCode != null ? 'Promo: $appliedPromoCode (-${promoDiscount.toStringAsFixed(0)} ${AppConstants.currency})' : null,
+          notes: appliedPromoCode != null
+              ? 'Promo: $appliedPromoCode (-${promoDiscount.toStringAsFixed(0)} ${AppConstants.currency})'
+              : null,
         );
 
         orderProvider.addOrder(order);
 
-        // #3 — Ajouter des points de fidélité
-        final loyaltyProvider = Provider.of<LoyaltyProvider>(context, listen: false);
+        final loyaltyProvider =
+            Provider.of<LoyaltyProvider>(context, listen: false);
         loyaltyProvider.addPoints(totalAmount.toDouble());
 
-        // Clear local shopping resources
         promoProvider.removePromoCode();
         cartProvider.clearCart();
 
@@ -238,17 +240,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
     final promoProvider = Provider.of<PromoProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final deliveryFee = AppConstants.deliveryFee;
     final subtotal = cartProvider.totalPrice;
 
     final appliedPromoCode = promoProvider.appliedCode;
     final promoDiscount = promoProvider.calculateDiscount(subtotal);
-    final total = (subtotal + deliveryFee - promoDiscount).clamp(0.0, double.infinity);
+    final total =
+        (subtotal + deliveryFee - promoDiscount).clamp(0.0, double.infinity);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Informations de livraison'),
+        title: Text(localeProvider.translate('checkout_title')),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.brown[700],
         foregroundColor: Colors.white,
       ),
@@ -260,7 +264,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Vos informations',
+                localeProvider.translate('your_info'),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -268,48 +272,47 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-
               TextFormField(
                 controller: _nameController,
                 decoration: InputDecoration(
-                  labelText: 'Nom complet',
+                  labelText: localeProvider.translate('name_field'),
                   prefixIcon: const Icon(Icons.person),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Veuillez entrer votre nom';
-                  if (value.length < 3) return 'Le nom doit contenir au moins 3 caractères';
+                  if (value == null || value.isEmpty)
+                    return localeProvider.translate('enter_name_error');
+                  if (value.length < 3)
+                    return localeProvider.translate('name_too_short');
                   return null;
                 },
               ),
-
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _phoneController,
                 decoration: InputDecoration(
-                  labelText: 'Numéro de téléphone',
+                  labelText: localeProvider.translate('phone_field'),
                   hintText: '0612345678',
                   prefixIcon: const Icon(Icons.phone),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 keyboardType: TextInputType.phone,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Veuillez entrer votre numéro';
+                  if (value == null || value.isEmpty)
+                    return localeProvider.translate('enter_phone_error');
                   final phoneRegex = RegExp(r'^0[5-7]\d{8}$');
                   if (!phoneRegex.hasMatch(value.replaceAll(' ', ''))) {
-                    return 'Format invalide (ex: 0612345678)';
+                    return localeProvider.translate('phone_format_error');
                   }
                   return null;
                 },
               ),
-
               const SizedBox(height: 16),
-
-              // #18 — Adresses sauvegardées
               if (_savedAddresses.isNotEmpty) ...[
                 Text(
-                  'Adresses enregistrées',
+                  localeProvider.translate('saved_addresses'),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -345,43 +348,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 const SizedBox(height: 12),
               ],
-
               TextFormField(
                 controller: _addressController,
                 decoration: InputDecoration(
-                  labelText: 'Adresse de livraison',
+                  labelText: localeProvider.translate('address_field'),
                   prefixIcon: const Icon(Icons.location_on),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 maxLines: 2,
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Veuillez entrer votre adresse';
-                  if (value.length < 10) return 'Adresse trop courte';
+                  if (value == null || value.isEmpty)
+                    return localeProvider.translate('enter_address_error');
+                  if (value.length < 10)
+                    return localeProvider.translate('address_too_short');
                   return null;
                 },
               ),
-
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _cityController,
                 decoration: InputDecoration(
-                  labelText: 'Ville',
+                  labelText: localeProvider.translate('city_field'),
                   prefixIcon: const Icon(Icons.location_city),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 validator: (value) {
-                  if (value == null || value.isEmpty) return 'Veuillez entrer votre ville';
-                  if (value.length < 3) return 'Nom de ville trop court';
+                  if (value == null || value.isEmpty)
+                    return localeProvider.translate('enter_city_error');
+                  if (value.length < 3)
+                    return localeProvider.translate('city_too_short');
                   return null;
                 },
               ),
-
               const SizedBox(height: 30),
-
-              // #17 — Code promo
               Text(
-                'Code promo',
+                localeProvider.translate('promo_code'),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -389,8 +392,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Codes promo disponibles
               if (appliedPromoCode == null)
                 Container(
                   width: double.infinity,
@@ -404,7 +405,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: isDark ? Colors.brown.withValues(alpha: 0.3) : Colors.brown.shade100,
+                      color: isDark
+                          ? Colors.brown.withValues(alpha: 0.3)
+                          : Colors.brown.shade100,
                     ),
                   ),
                   child: Column(
@@ -412,14 +415,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.local_offer, size: 18, color: Colors.brown[700]),
+                          Icon(Icons.local_offer,
+                              size: 18, color: Colors.brown[700]),
                           const SizedBox(width: 6),
                           Text(
-                            'Codes disponibles',
+                            localeProvider.translate('available_promos'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.brown[200] : Colors.brown[800],
+                              color: isDark
+                                  ? Colors.brown[200]
+                                  : Colors.brown[800],
                             ),
                           ),
                         ],
@@ -428,7 +434,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: promoProvider.availablePromoCodes.entries.map((entry) {
+                        children: promoProvider.availablePromoCodes.entries
+                            .map((entry) {
                           return InkWell(
                             onTap: () {
                               _promoController.text = entry.key;
@@ -436,7 +443,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             },
                             borderRadius: BorderRadius.circular(20),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
                               decoration: BoxDecoration(
                                 color: isDark
                                     ? Colors.brown.withValues(alpha: 0.2)
@@ -478,7 +486,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ],
                   ),
                 ),
-
               if (appliedPromoCode != null)
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -490,11 +497,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      const Icon(Icons.check_circle,
+                          color: Colors.green, size: 20),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Code "$appliedPromoCode" appliqué : -${promoDiscount.toStringAsFixed(0)} ${AppConstants.currency} (-${(promoProvider.discountPercent * 100).toStringAsFixed(0)}%)',
+                          'Code "$appliedPromoCode" ${localeProvider.translate('promo_applied_label')} : -${promoDiscount.toStringAsFixed(0)} ${AppConstants.currency} (-${(promoProvider.discountPercent * 100).toStringAsFixed(0)}%)',
                           style: const TextStyle(
                             color: Colors.green,
                             fontWeight: FontWeight.w600,
@@ -502,7 +510,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.red, size: 20),
+                        icon: const Icon(Icons.close,
+                            color: Colors.red, size: 20),
                         onPressed: _removePromoCode,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(),
@@ -517,12 +526,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       child: TextField(
                         controller: _promoController,
                         decoration: InputDecoration(
-                          hintText: 'Entrez votre code promo',
+                          hintText:
+                              localeProvider.translate('promo_placeholder'),
                           prefixIcon: const Icon(Icons.local_offer),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          errorText: promoProvider.errorMessage,
+                          errorText: promoProvider.errorMessage != null
+                              ? localeProvider.translate('promo_code_invalid')
+                              : null,
                         ),
                         textCapitalization: TextCapitalization.characters,
                       ),
@@ -538,63 +550,63 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const Text('Appliquer',
-                            style: TextStyle(color: Colors.white)),
+                        child: Text(
+                            localeProvider.translate('promo_code_apply'),
+                            style: const TextStyle(color: Colors.white)),
                       ),
                     ),
                   ],
                 ),
-
               const SizedBox(height: 30),
-
               Text(
-                'Mode de paiement',
+                localeProvider.translate('payment_method'),
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
-
               const SizedBox(height: 10),
-
               RadioListTile<String>(
-                title: const Text('Espèces à la livraison'),
+                title: Text(localeProvider.translate('cash_on_delivery')),
                 value: 'Espèces',
                 groupValue: _paymentMethod,
                 onChanged: (value) => setState(() => _paymentMethod = value!),
                 activeColor: Colors.brown[700],
               ),
-
               RadioListTile<String>(
-                title: const Text('Carte bancaire'),
+                title: Text(localeProvider.translate('credit_card')),
                 value: 'Carte bancaire',
                 groupValue: _paymentMethod,
                 onChanged: (value) => setState(() => _paymentMethod = value!),
                 activeColor: Colors.brown[700],
               ),
-
               const SizedBox(height: 30),
-
-              // Récapitulatif
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: isDark ? const Color(0xFF1E1E1E) : Colors.brown[50],
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF3E3E3E) : Colors.brown.shade200,
+                    color: isDark
+                        ? const Color(0xFF3E3E3E)
+                        : Colors.brown.shade200,
                   ),
                 ),
                 child: Column(
                   children: [
-                    _buildPriceRow('Articles', '${cartProvider.totalItemCount}', isDark),
+                    _buildPriceRow(localeProvider.translate('items'),
+                        '${cartProvider.totalItemCount}', isDark),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Sous-total',
-                        '${subtotal.toStringAsFixed(2)} ${AppConstants.currency}', isDark),
+                    _buildPriceRow(
+                        localeProvider.translate('subtotal'),
+                        '${subtotal.toStringAsFixed(2)} ${AppConstants.currency}',
+                        isDark),
                     const SizedBox(height: 8),
-                    _buildPriceRow('Livraison',
-                        '${deliveryFee.toStringAsFixed(2)} ${AppConstants.currency}', isDark),
+                    _buildPriceRow(
+                        localeProvider.translate('delivery'),
+                        '${deliveryFee.toStringAsFixed(2)} ${AppConstants.currency}',
+                        isDark),
                     if (promoDiscount > 0) ...[
                       const SizedBox(height: 8),
                       Row(
@@ -603,11 +615,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Expanded(
                             child: Row(
                               children: [
-                                const Icon(Icons.local_offer, size: 16, color: Colors.green),
+                                const Icon(Icons.local_offer,
+                                    size: 16, color: Colors.green),
                                 const SizedBox(width: 4),
                                 Flexible(
-                                  child: Text('Promo ($appliedPromoCode)',
-                                      style: const TextStyle(fontSize: 14, color: Colors.green),
+                                  child: Text(
+                                      '${localeProvider.translate('promo_label')} ($appliedPromoCode)',
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.green),
                                       overflow: TextOverflow.ellipsis),
                                 ),
                               ],
@@ -629,7 +644,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Total :',
+                        Text(localeProvider.translate('total_label'),
                             style: TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
@@ -648,25 +663,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 16),
-
-              // #10 — Estimation de livraison dynamique
-              _buildDeliveryEstimate(context, cartProvider, isDark),
-
+              _buildDeliveryEstimate(
+                  context, cartProvider, isDark, localeProvider),
               const SizedBox(height: 16),
-
-              // #3 — Points de fidélité à gagner
               Consumer<LoyaltyProvider>(
                 builder: (context, loyalty, _) {
                   final pointsToEarn = total.floor();
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF2A2A2A) : Colors.amber[50],
+                      color:
+                          isDark ? const Color(0xFF2A2A2A) : Colors.amber[50],
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
-                        color: isDark ? const Color(0xFF3E3E3E) : Colors.amber[200]!,
+                        color: isDark
+                            ? const Color(0xFF3E3E3E)
+                            : Colors.amber[200]!,
                       ),
                     ),
                     child: Row(
@@ -678,17 +691,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Vous gagnerez $pointsToEarn points',
+                                '${localeProvider.translate('loyalty_win_points')} $pointsToEarn ${localeProvider.translate('loyalty_points_label')}',
                                 style: TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: isDark ? Colors.white : Colors.black87,
                                 ),
                               ),
                               Text(
-                                'Niveau actuel : ${loyalty.levelEmoji} ${loyalty.level} (${loyalty.points} pts)',
+                                '${localeProvider.translate('loyalty_current_level')} ${loyalty.levelEmoji} ${loyalty.level} (${loyalty.points} pts)',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                  color: isDark
+                                      ? Colors.grey[400]
+                                      : Colors.grey[600],
                                 ),
                               ),
                             ],
@@ -699,9 +714,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   );
                 },
               ),
-
               const SizedBox(height: 24),
-
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -723,9 +736,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             strokeWidth: 2.5,
                           ),
                         )
-                      : const Text(
-                          'CONFIRMER LA COMMANDE',
-                          style: TextStyle(
+                      : Text(
+                          localeProvider.translate('confirm_order_btn'),
+                          style: const TextStyle(
                             fontSize: 18,
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -744,28 +757,33 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: TextStyle(
-          fontSize: 16, color: isDark ? Colors.grey[300] : Colors.black87)),
-        Text(value, style: TextStyle(
-          fontSize: 16, fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white : Colors.black87)),
+        Text(label,
+            style: TextStyle(
+                fontSize: 16,
+                color: isDark ? Colors.grey[300] : Colors.black87)),
+        Text(value,
+            style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black87)),
       ],
     );
   }
 
-  // #10 — Estimation de livraison dynamique
-  Widget _buildDeliveryEstimate(BuildContext context, CartProvider cartProvider, bool isDark) {
-    // Calculer le temps max de préparation
+  Widget _buildDeliveryEstimate(BuildContext context, CartProvider cartProvider,
+      bool isDark, LocaleProvider localeProvider) {
     int maxPrepTime = 0;
     for (var item in cartProvider.items) {
       if (item.foodItem.preparationTime > maxPrepTime) {
         maxPrepTime = item.foodItem.preparationTime;
       }
     }
-    final deliveryTime = 15; // temps de livraison fixe
+    final deliveryTime = 15;
     final totalMinutes = maxPrepTime + deliveryTime;
-    final estimatedArrival = DateTime.now().add(Duration(minutes: totalMinutes));
-    final arrivalStr = '${estimatedArrival.hour.toString().padLeft(2, '0')}:${estimatedArrival.minute.toString().padLeft(2, '0')}';
+    final estimatedArrival =
+        DateTime.now().add(Duration(minutes: totalMinutes));
+    final arrivalStr =
+        '${estimatedArrival.hour.toString().padLeft(2, '0')}:${estimatedArrival.minute.toString().padLeft(2, '0')}';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -784,7 +802,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               color: Colors.green.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.delivery_dining, color: Colors.green, size: 24),
+            child: const Icon(Icons.delivery_dining,
+                color: Colors.green, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -792,7 +811,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Livraison estimée à $arrivalStr',
+                  '${localeProvider.translate('estimated_delivery_at')} $arrivalStr',
                   style: TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -801,7 +820,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Préparation ~${maxPrepTime}min + Livraison ~${deliveryTime}min',
+                  '${localeProvider.translate('prep_time_label')} ~${maxPrepTime}min + ${localeProvider.translate('delivery_time_label')} ~${deliveryTime}min',
                   style: TextStyle(
                     fontSize: 12,
                     color: isDark ? Colors.grey[400] : Colors.grey[600],

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/cart_provider.dart';
+import '../providers/locale_provider.dart';
 import '../models/cart_item.dart';
 import '../data/app_constants.dart';
 import 'checkout_screen.dart';
@@ -13,11 +14,13 @@ class CartScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Panier (${cartProvider.totalItemCount})'),
+        title: Text(
+            '${localeProvider.translate('cart_title')} (${cartProvider.totalItemCount})'),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.brown[700],
         foregroundColor: Colors.white,
         actions: [
@@ -25,33 +28,45 @@ class CartScreen extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.delete_sweep),
               onPressed: () {
-                HapticFeedback.mediumImpact(); // #31
+                HapticFeedback.mediumImpact();
                 showDialog(
                   context: context,
                   builder: (ctx) => AlertDialog(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    title: const Row(
+                    title: Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 22),
-                        SizedBox(width: 8),
-                        Text('Vider le panier ?', style: TextStyle(fontSize: 16)),
+                        const Icon(Icons.warning_amber_rounded,
+                            color: Colors.orange, size: 22),
+                        const SizedBox(width: 8),
+                        Text(localeProvider.translate('clear_cart_confirm'),
+                            style: const TextStyle(fontSize: 16)),
                       ],
                     ),
-                    content: const Text('Supprimer tous les articles ?', style: TextStyle(fontSize: 14)),
+                    content: Text(
+                        localeProvider.localeCode == 'fr'
+                            ? 'Supprimer tous les articles ?'
+                            : 'Remove all items?',
+                        style: const TextStyle(fontSize: 14)),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(ctx).pop(),
-                        child: const Text('Non'),
+                        child: Text(
+                            localeProvider.localeCode == 'fr' ? 'Non' : 'No'),
                       ),
                       ElevatedButton(
                         onPressed: () {
                           cartProvider.clearCart();
                           Navigator.of(ctx).pop();
                         },
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                        child: const Text('Vider', style: TextStyle(color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red),
+                        child: Text(
+                            localeProvider.localeCode == 'fr'
+                                ? 'Vider'
+                                : 'Clear',
+                            style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -61,7 +76,7 @@ class CartScreen extends StatelessWidget {
         ],
       ),
       body: cartProvider.isEmpty
-          ? _buildEmptyCart(isDark)
+          ? _buildEmptyCart(context, isDark)
           : Column(
               children: [
                 Expanded(
@@ -70,7 +85,8 @@ class CartScreen extends StatelessWidget {
                     itemCount: cartProvider.items.length,
                     itemBuilder: (context, index) {
                       final cartItem = cartProvider.items[index];
-                      return _buildCartItemCard(context, cartItem, cartProvider, isDark, index);
+                      return _buildCartItemCard(
+                          context, cartItem, cartProvider, isDark, index);
                     },
                   ),
                 ),
@@ -80,35 +96,45 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  // #28 — Empty state animé
-  Widget _buildEmptyCart(bool isDark) {
+  Widget _buildEmptyCart(BuildContext context, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icône animée
-          Icon(Icons.shopping_cart_outlined, size: 100,
-               color: isDark ? Colors.grey[700] : Colors.grey[300])
+          Icon(Icons.shopping_cart_outlined,
+                  size: 100,
+                  color: isDark ? Colors.grey[700] : Colors.grey[300])
               .animate(onPlay: (c) => c.repeat(reverse: true))
-              .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 1500.ms)
+              .scale(
+                  begin: const Offset(1, 1),
+                  end: const Offset(1.1, 1.1),
+                  duration: 1500.ms)
               .then()
               .shake(hz: 2, duration: 500.ms),
           const SizedBox(height: 24),
-          Text('Votre panier est vide',
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.grey[400] : Colors.grey[700]))
-              .animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, end: 0),
+          Text(localeProvider.translate('empty_cart_title'),
+                  style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.grey[400] : Colors.grey[700]))
+              .animate()
+              .fadeIn(duration: 500.ms)
+              .slideY(begin: 0.2, end: 0),
           const SizedBox(height: 8),
-          Text('Parcourez le menu pour ajouter des articles',
-              style: TextStyle(fontSize: 14,
-                  color: isDark ? Colors.grey[600] : Colors.grey[500]))
-              .animate().fadeIn(duration: 500.ms, delay: 200.ms),
+          Text(localeProvider.translate('empty_cart_subtitle'),
+                  style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? Colors.grey[600] : Colors.grey[500]))
+              .animate()
+              .fadeIn(duration: 500.ms, delay: 200.ms),
         ],
       ),
     );
   }
 
-  Widget _buildCartItemCard(BuildContext context, CartItem cartItem, CartProvider cartProvider, bool isDark, int index) {
+  Widget _buildCartItemCard(BuildContext context, CartItem cartItem,
+      CartProvider cartProvider, bool isDark, int index) {
     return Dismissible(
       key: Key(cartItem.foodItem.id),
       direction: DismissDirection.endToStart,
@@ -123,35 +149,48 @@ class CartScreen extends StatelessWidget {
         child: const Icon(Icons.delete, color: Colors.white, size: 28),
       ),
       confirmDismiss: (direction) async {
-        HapticFeedback.mediumImpact(); // #31
+        final localeProvider =
+            Provider.of<LocaleProvider>(context, listen: false);
+        HapticFeedback.mediumImpact();
         return await showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            title: const Text('Supprimer ?', style: TextStyle(fontSize: 16)),
-            content: Text('Retirer "${cartItem.foodItem.name}" ?', style: const TextStyle(fontSize: 14)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+                localeProvider.localeCode == 'fr' ? 'Supprimer ?' : 'Remove?',
+                style: const TextStyle(fontSize: 16)),
+            content: Text(
+                localeProvider.localeCode == 'fr'
+                    ? 'Retirer "${cartItem.foodItem.name}" ?'
+                    : 'Remove "${cartItem.foodItem.name}"?',
+                style: const TextStyle(fontSize: 14)),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(false),
-                child: const Text('Non'),
+                child: Text(localeProvider.localeCode == 'fr' ? 'Non' : 'No'),
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(ctx).pop(true),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                child: const Text('Oui', style: TextStyle(color: Colors.white)),
+                child: Text(localeProvider.localeCode == 'fr' ? 'Oui' : 'Yes',
+                    style: const TextStyle(color: Colors.white)),
               ),
             ],
           ),
         );
       },
       onDismissed: (direction) {
+        final localeProvider =
+            Provider.of<LocaleProvider>(context, listen: false);
         final deletedItem = cartItem.copyWith();
         cartProvider.removeItem(cartItem.foodItem.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${cartItem.foodItem.name} retiré'),
+            content: Text(
+                '${cartItem.foodItem.name} ${localeProvider.localeCode == 'fr' ? 'retiré' : 'removed'}'),
             action: SnackBarAction(
-              label: 'Annuler',
+              label: localeProvider.translate('undo'),
               onPressed: () => cartProvider.restoreCartItem(deletedItem),
             ),
             duration: const Duration(seconds: 2),
@@ -179,7 +218,6 @@ class CartScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,7 +225,8 @@ class CartScreen extends StatelessWidget {
                         Text(
                           cartItem.foodItem.name,
                           style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
                             color: isDark ? Colors.white : Colors.black87,
                           ),
                           maxLines: 1,
@@ -196,10 +235,12 @@ class CartScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Text(
                           '${cartItem.foodItem.price.toStringAsFixed(2)} ${AppConstants.currency}',
-                          style: TextStyle(fontSize: 13, color: Colors.red[600], fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.red[600],
+                              fontWeight: FontWeight.w600),
                         ),
                         const SizedBox(height: 4),
-                        // #35 — Total animé
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           transitionBuilder: (child, animation) {
@@ -217,18 +258,21 @@ class CartScreen extends StatelessWidget {
                           child: Text(
                             'Total: ${cartItem.totalPrice.toStringAsFixed(2)} ${AppConstants.currency}',
                             key: ValueKey<double>(cartItem.totalPrice),
-                            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.brown[300] : Colors.brown[700]),
+                            style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark
+                                    ? Colors.brown[300]
+                                    : Colors.brown[700]),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  
-                  // #35 — Contrôles quantité avec animation
                   Container(
                     decoration: BoxDecoration(
-                      color: isDark ? const Color(0xFF2C2C2C) : Colors.grey[100],
+                      color:
+                          isDark ? const Color(0xFF2C2C2C) : Colors.grey[100],
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Column(
@@ -236,41 +280,47 @@ class CartScreen extends StatelessWidget {
                       children: [
                         InkWell(
                           onTap: () {
-                            HapticFeedback.selectionClick(); // #31
+                            HapticFeedback.selectionClick();
                             cartProvider.increaseQuantity(cartItem.foodItem.id);
                           },
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            child: Icon(Icons.add, size: 18, color: Colors.green[700]),
+                            child: Icon(Icons.add,
+                                size: 18, color: Colors.green[700]),
                           ),
                         ),
-                        // #35 — Compteur animé
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 200),
                           transitionBuilder: (child, animation) {
-                            return ScaleTransition(scale: animation, child: child);
+                            return ScaleTransition(
+                                scale: animation, child: child);
                           },
                           child: Container(
                             key: ValueKey<int>(cartItem.quantity),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.brown[700],
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: Text(
                               '${cartItem.quantity}',
-                              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white),
+                              style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white),
                             ),
                           ),
                         ),
                         InkWell(
                           onTap: () {
-                            HapticFeedback.selectionClick(); // #31
+                            HapticFeedback.selectionClick();
                             cartProvider.decreaseQuantity(cartItem.foodItem.id);
                           },
                           child: Container(
                             padding: const EdgeInsets.all(6),
-                            child: Icon(Icons.remove, size: 18, color: Colors.red[700]),
+                            child: Icon(Icons.remove,
+                                size: 18, color: Colors.red[700]),
                           ),
                         ),
                       ],
@@ -278,50 +328,67 @@ class CartScreen extends StatelessWidget {
                   ),
                 ],
               ),
-
-              // Instructions spéciales (#21)
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: InkWell(
                   onTap: () => _showSpecialInstructionsDialog(
-                    context, cartItem, cartProvider,
+                    context,
+                    cartItem,
+                    cartProvider,
                   ),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF2C2C2C) : Colors.grey[50],
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(
-                        color: isDark ? const Color(0xFF3E3E3E) : Colors.grey[200]!,
+                        color: isDark
+                            ? const Color(0xFF3E3E3E)
+                            : Colors.grey[200]!,
                       ),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.edit_note, size: 18,
-                            color: isDark ? Colors.grey[400] : Colors.grey[600]),
+                        Icon(Icons.edit_note,
+                            size: 18,
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[600]),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             cartItem.specialInstructions?.isNotEmpty == true
                                 ? cartItem.specialInstructions!
-                                : 'Ajouter une note (allergies, cuisson...)',
+                                : (Provider.of<LocaleProvider>(context,
+                                                listen: false)
+                                            .localeCode ==
+                                        'fr'
+                                    ? 'Ajouter une note (allergies, cuisson...)'
+                                    : 'Add special instructions...'),
                             style: TextStyle(
                               fontSize: 12,
-                              color: cartItem.specialInstructions?.isNotEmpty == true
+                              color: cartItem.specialInstructions?.isNotEmpty ==
+                                      true
                                   ? (isDark ? Colors.white70 : Colors.black87)
-                                  : (isDark ? Colors.grey[600] : Colors.grey[400]),
-                              fontStyle: cartItem.specialInstructions?.isNotEmpty == true
-                                  ? FontStyle.normal
-                                  : FontStyle.italic,
+                                  : (isDark
+                                      ? Colors.grey[600]
+                                      : Colors.grey[400]),
+                              fontStyle:
+                                  cartItem.specialInstructions?.isNotEmpty ==
+                                          true
+                                      ? FontStyle.normal
+                                      : FontStyle.italic,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        Icon(Icons.chevron_right, size: 16,
-                            color: isDark ? Colors.grey[600] : Colors.grey[400]),
+                        Icon(Icons.chevron_right,
+                            size: 16,
+                            color:
+                                isDark ? Colors.grey[600] : Colors.grey[400]),
                       ],
                     ),
                   ),
@@ -335,7 +402,9 @@ class CartScreen extends StatelessWidget {
   }
 
   void _showSpecialInstructionsDialog(
-    BuildContext context, CartItem cartItem, CartProvider cartProvider,
+    BuildContext context,
+    CartItem cartItem,
+    CartProvider cartProvider,
   ) {
     showDialog(
       context: context,
@@ -346,7 +415,9 @@ class CartScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomBar(BuildContext context, CartProvider cartProvider, bool isDark) {
+  Widget _buildBottomBar(
+      BuildContext context, CartProvider cartProvider, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -370,84 +441,98 @@ class CartScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Sous-total :', style: TextStyle(fontSize: 14,
-                    color: isDark ? Colors.grey[400] : Colors.grey[700])),
-                // #35 — Total animé
+                Text('${localeProvider.translate('subtotal')} :',
+                    style: TextStyle(
+                        fontSize: 14,
+                        color: isDark ? Colors.grey[400] : Colors.grey[700])),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Text(
                     '${cartProvider.totalPrice.toStringAsFixed(2)} ${AppConstants.currency}',
                     key: ValueKey<double>(cartProvider.totalPrice),
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                         color: isDark ? Colors.white : Colors.black87),
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
                     Icon(Icons.delivery_dining,
-                        color: isDark ? Colors.grey[400] : Colors.grey[700], size: 18),
+                        color: isDark ? Colors.grey[400] : Colors.grey[700],
+                        size: 18),
                     const SizedBox(width: 4),
-                    Text('Livraison :', style: TextStyle(fontSize: 14,
-                        color: isDark ? Colors.grey[400] : Colors.grey[700])),
+                    Text('${localeProvider.translate('delivery_fee')} :',
+                        style: TextStyle(
+                            fontSize: 14,
+                            color:
+                                isDark ? Colors.grey[400] : Colors.grey[700])),
                   ],
                 ),
-                Text('${cartProvider.getDeliveryFee().toStringAsFixed(2)} ${AppConstants.currency}',
-                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600,
-                         color: isDark ? Colors.white : Colors.black87)),
+                Text(
+                    '${cartProvider.getDeliveryFee().toStringAsFixed(2)} ${AppConstants.currency}',
+                    style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87)),
               ],
             ),
-            
             const Divider(height: 20, thickness: 1),
-            
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Total :', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold,
-                    color: isDark ? Colors.white : Colors.black87)),
+                Text('${localeProvider.translate('total')} :',
+                    style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : Colors.black87)),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 300),
                   child: Text(
                     '${cartProvider.getTotalWithDelivery().toStringAsFixed(2)} ${AppConstants.currency}',
                     key: ValueKey<double>(cartProvider.getTotalWithDelivery()),
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.red[600]),
+                    style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red[600]),
                   ),
                 ),
               ],
             ),
-            
             const SizedBox(height: 12),
-            
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
-                  HapticFeedback.mediumImpact(); // #31
+                  HapticFeedback.mediumImpact();
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const CheckoutScreen()),
+                    MaterialPageRoute(
+                        builder: (context) => const CheckoutScreen()),
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.brown[700],
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
                   elevation: 2,
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 20),
-                    SizedBox(width: 10),
+                    const Icon(Icons.shopping_bag_outlined,
+                        color: Colors.white, size: 20),
+                    const SizedBox(width: 10),
                     Text(
-                      'PASSER COMMANDE',
-                      style: TextStyle(
+                      localeProvider.translate('checkout_btn').toUpperCase(),
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -475,10 +560,12 @@ class _SpecialInstructionsDialog extends StatefulWidget {
   });
 
   @override
-  State<_SpecialInstructionsDialog> createState() => _SpecialInstructionsDialogState();
+  State<_SpecialInstructionsDialog> createState() =>
+      _SpecialInstructionsDialogState();
 }
 
-class _SpecialInstructionsDialogState extends State<_SpecialInstructionsDialog> {
+class _SpecialInstructionsDialogState
+    extends State<_SpecialInstructionsDialog> {
   late TextEditingController _controller;
 
   @override
@@ -497,14 +584,20 @@ class _SpecialInstructionsDialogState extends State<_SpecialInstructionsDialog> 
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       title: Row(
         children: [
           Icon(Icons.edit_note, color: Colors.brown[700]),
           const SizedBox(width: 8),
-          const Expanded(
-            child: Text('Instructions spéciales', style: TextStyle(fontSize: 16)),
+          Expanded(
+            child: Text(
+                localeProvider.localeCode == 'fr'
+                    ? 'Instructions spéciales'
+                    : 'Special Instructions',
+                style: const TextStyle(fontSize: 16)),
           ),
         ],
       ),
@@ -521,7 +614,9 @@ class _SpecialInstructionsDialogState extends State<_SpecialInstructionsDialog> 
             controller: _controller,
             maxLines: 3,
             decoration: InputDecoration(
-              hintText: 'Ex: Sans oignons, bien cuit, allergie aux noix...',
+              hintText: localeProvider.localeCode == 'fr'
+                  ? 'Ex: Sans oignons, bien cuit...'
+                  : 'E.g.: No onions, well done...',
               hintStyle: TextStyle(fontSize: 13, color: Colors.grey[400]),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
@@ -533,7 +628,7 @@ class _SpecialInstructionsDialogState extends State<_SpecialInstructionsDialog> 
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Annuler'),
+          child: Text(localeProvider.translate('cancel')),
         ),
         ElevatedButton(
           onPressed: () {
@@ -544,7 +639,8 @@ class _SpecialInstructionsDialogState extends State<_SpecialInstructionsDialog> 
             Navigator.of(context).pop();
           },
           style: ElevatedButton.styleFrom(backgroundColor: Colors.brown[700]),
-          child: const Text('Enregistrer', style: TextStyle(color: Colors.white)),
+          child: Text(localeProvider.translate('save'),
+              style: const TextStyle(color: Colors.white)),
         ),
       ],
     );

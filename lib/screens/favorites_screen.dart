@@ -3,11 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/cart_provider.dart';
+import '../providers/locale_provider.dart';
 import '../data/menu_data.dart';
 import '../models/food_item.dart';
 import 'food_detail_screen.dart';
 
-/// Écran des favoris (#19) — Version Grille Premium
 class FavoritesScreen extends StatelessWidget {
   const FavoritesScreen({super.key});
 
@@ -15,14 +15,15 @@ class FavoritesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final favoritesProvider = Provider.of<FavoritesProvider>(context);
     final cartProvider = Provider.of<CartProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Récupérer les items favoris depuis FavoritesProvider
     final favoriteItems = favoritesProvider.getFavoriteItems(MenuData.allItems);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Mes Favoris (${favoriteItems.length})'),
+        title: Text(
+            '${localeProvider.translate('favorites_title')} (${favoriteItems.length})'),
         backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.brown[700],
         foregroundColor: Colors.white,
         actions: [
@@ -36,20 +37,21 @@ class FavoritesScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    title: const Row(
+                    title: Row(
                       children: [
-                        Icon(Icons.warning_amber_rounded,
+                        const Icon(Icons.warning_amber_rounded,
                             color: Colors.orange, size: 22),
-                        SizedBox(width: 8),
-                        Text('Vider les favoris ?',
-                            style: TextStyle(fontSize: 16)),
+                        const SizedBox(width: 8),
+                        Text(localeProvider.translate('clear_favorites_title'),
+                            style: const TextStyle(fontSize: 16)),
                       ],
                     ),
-                    content: const Text('Retirer tous les favoris ?'),
+                    content: Text(
+                        localeProvider.translate('clear_favorites_confirm')),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx),
-                        child: const Text('Non'),
+                        child: Text(localeProvider.translate('no')),
                       ),
                       ElevatedButton(
                         onPressed: () {
@@ -58,8 +60,8 @@ class FavoritesScreen extends StatelessWidget {
                         },
                         style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red),
-                        child: const Text('Vider',
-                            style: TextStyle(color: Colors.white)),
+                        child: Text(localeProvider.translate('clear'),
+                            style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -74,24 +76,30 @@ class FavoritesScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.favorite_border,
-                      size: 100,
-                      color: isDark ? Colors.grey[700] : Colors.grey[300])
+                          size: 100,
+                          color: isDark ? Colors.grey[700] : Colors.grey[300])
                       .animate(onPlay: (c) => c.repeat(reverse: true))
-                      .scale(begin: const Offset(1, 1), end: const Offset(1.1, 1.1), duration: 1500.ms)
+                      .scale(
+                          begin: const Offset(1, 1),
+                          end: const Offset(1.1, 1.1),
+                          duration: 1500.ms)
                       .then()
                       .shake(hz: 2, duration: 500.ms),
                   const SizedBox(height: 24),
                   Text(
-                    'Aucun favori',
+                    localeProvider.translate('empty_favorites_title'),
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                       color: isDark ? Colors.grey[400] : Colors.grey[700],
                     ),
-                  ).animate().fadeIn(duration: 500.ms).slideY(begin: 0.2, end: 0),
+                  )
+                      .animate()
+                      .fadeIn(duration: 500.ms)
+                      .slideY(begin: 0.2, end: 0),
                   const SizedBox(height: 8),
                   Text(
-                    'Appuyez sur ❤️ pour ajouter des favoris',
+                    localeProvider.translate('empty_favorites_subtitle'),
                     style: TextStyle(
                       fontSize: 14,
                       color: isDark ? Colors.grey[600] : Colors.grey[500],
@@ -112,7 +120,11 @@ class FavoritesScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final item = favoriteItems[index];
                 return _buildFavoriteGridCard(
-                  context, item, favoritesProvider, cartProvider, isDark,
+                  context,
+                  item,
+                  favoritesProvider,
+                  cartProvider,
+                  isDark,
                 );
               },
             ),
@@ -144,7 +156,6 @@ class FavoritesScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image Stack
             Stack(
               children: [
                 Hero(
@@ -162,29 +173,34 @@ class FavoritesScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Bouton coeur en surcouche
                 Positioned(
                   top: 8,
                   right: 8,
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.black54 : Colors.white.withValues(alpha: 0.9),
+                      color: isDark
+                          ? Colors.black54
+                          : Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
                       constraints: const BoxConstraints(),
                       padding: const EdgeInsets.all(6),
                       onPressed: () {
+                        final localeProv =
+                            Provider.of<LocaleProvider>(context, listen: false);
                         favoritesProvider.removeFavorite(item.id);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${item.name} retiré des favoris'),
+                            content: Text(
+                                '${item.name} ${localeProv.translate('item_removed_favorites')}'),
                             behavior: SnackBarBehavior.floating,
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10)),
                             action: SnackBarAction(
-                              label: 'Annuler',
-                              onPressed: () => favoritesProvider.toggleFavorite(item.id),
+                              label: localeProv.translate('undo'),
+                              onPressed: () =>
+                                  favoritesProvider.toggleFavorite(item.id),
                             ),
                           ),
                         );
@@ -196,11 +212,10 @@ class FavoritesScreen extends StatelessWidget {
                 ),
               ],
             ),
-            
-            // Text & Price & Panier
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -221,23 +236,29 @@ class FavoritesScreen extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.star, color: Colors.amber, size: 14),
+                            const Icon(Icons.star,
+                                color: Colors.amber, size: 14),
                             const SizedBox(width: 2),
                             Text(
                               '${item.rating}',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Icon(Icons.access_time, size: 12, color: Colors.grey[550]),
+                            Icon(Icons.access_time,
+                                size: 12, color: Colors.grey[550]),
                             const SizedBox(width: 2),
                             Text(
                               '${item.preparationTime} min',
                               style: TextStyle(
                                 fontSize: 11,
-                                color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                color: isDark
+                                    ? Colors.grey[400]
+                                    : Colors.grey[600],
                               ),
                             ),
                           ],
@@ -263,10 +284,14 @@ class FavoritesScreen extends StatelessWidget {
                           padding: const EdgeInsets.all(4),
                           onPressed: () {
                             if (!isInCart) {
+                              final localeProv = Provider.of<LocaleProvider>(
+                                  context,
+                                  listen: false);
                               cartProvider.addItem(item);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('${item.name} ajouté au panier'),
+                                  content: Text(
+                                      '${item.name} ${localeProv.translate('added_to_cart')}'),
                                   backgroundColor: Colors.green,
                                   behavior: SnackBarBehavior.floating,
                                   shape: RoundedRectangleBorder(
@@ -277,7 +302,9 @@ class FavoritesScreen extends StatelessWidget {
                             }
                           },
                           icon: Icon(
-                            isInCart ? Icons.check_circle : Icons.add_shopping_cart,
+                            isInCart
+                                ? Icons.check_circle
+                                : Icons.add_shopping_cart,
                             color: isInCart ? Colors.green : Colors.brown[700],
                           ),
                           iconSize: 20,

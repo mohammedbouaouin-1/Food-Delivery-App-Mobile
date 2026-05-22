@@ -7,7 +7,7 @@ import '../providers/cart_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../models/food_item.dart';
 import '../data/menu_data.dart';
-import '../data/app_constants.dart';
+import '../providers/locale_provider.dart';
 import 'food_detail_screen.dart';
 import 'food_search_delegate.dart';
 
@@ -18,7 +18,8 @@ class MenuScreen extends StatefulWidget {
   State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateMixin {
+class _MenuScreenState extends State<MenuScreen>
+    with SingleTickerProviderStateMixin {
   final ScrollController _scrollController = ScrollController();
   String _selectedCategory = 'Pizza';
   late AnimationController _fabAnimationController;
@@ -40,7 +41,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
       duration: const Duration(milliseconds: 300),
     );
     _promoPageController = PageController(viewportFraction: 0.9);
-    
+
     _scrollController.addListener(() {
       if (_scrollController.offset > 200 && !_showFab) {
         setState(() => _showFab = true);
@@ -76,13 +77,15 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final localeProvider = Provider.of<LocaleProvider>(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       backgroundColor: isDark ? const Color(0xFF121212) : Colors.grey[50],
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: (isDark ? const Color(0xFF1E1E1E) : Colors.brown[700]!).withValues(alpha: 0.8),
+        backgroundColor: (isDark ? const Color(0xFF1E1E1E) : Colors.brown[700]!)
+            .withValues(alpha: 0.8),
         foregroundColor: Colors.white,
         elevation: 0,
         flexibleSpace: ClipRRect(
@@ -91,7 +94,8 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             child: Container(color: Colors.transparent),
           ),
         ),
-        title: const Text('Menu', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(localeProvider.translate('menu_title'),
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -110,10 +114,21 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
             child: Row(
               children: MenuData.categories.map((cat) {
                 final isLast = cat == MenuData.categories.last;
+                final String emoji = cat['label']!.split(' ').first;
+                final String catKey = cat['key']! == 'Salades'
+                    ? 'salads_category'
+                    : cat['key']! == 'Boissons'
+                        ? 'drinks_category'
+                        : cat['key']! == 'Pizza'
+                            ? 'pizza_category'
+                            : 'tacos_category';
                 return Expanded(
                   child: Padding(
                     padding: EdgeInsets.only(right: isLast ? 0 : 6),
-                    child: _buildCategoryTab(cat['label']!, cat['key']!, isDark),
+                    child: _buildCategoryTab(
+                        '$emoji ${localeProvider.translate(catKey)}',
+                        cat['key']!,
+                        isDark),
                   ),
                 );
               }).toList(),
@@ -128,22 +143,25 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               controller: _scrollController,
               child: Column(
                 children: [
-                  SizedBox(height: MediaQuery.of(context).padding.top + kToolbarHeight + 60), // Add padding for the AppBar
-                  
-                  // Search Bar Explicite
+                  SizedBox(
+                      height: MediaQuery.of(context).padding.top +
+                          kToolbarHeight +
+                          60),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     child: GestureDetector(
                       onTap: () {
                         showSearch(
                           context: context,
-                          delegate: FoodSearchDelegate(MenuData.allItems, cartProvider),
+                          delegate: FoodSearchDelegate(
+                              MenuData.allItems, cartProvider),
                         );
                       },
                       child: Container(
                         height: 50,
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                          color:
+                              isDark ? const Color(0xFF1E1E1E) : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(
@@ -153,7 +171,9 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                             ),
                           ],
                           border: Border.all(
-                            color: isDark ? const Color(0xFF3E3E3E) : Colors.grey[200]!,
+                            color: isDark
+                                ? const Color(0xFF3E3E3E)
+                                : Colors.grey[200]!,
                           ),
                         ),
                         padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -162,7 +182,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                             Icon(Icons.search, color: Colors.grey[500]),
                             const SizedBox(width: 12),
                             Text(
-                              'Que voulez-vous manger ?',
+                              localeProvider.translate('search_placeholder'),
                               style: TextStyle(
                                 color: Colors.grey[500],
                                 fontSize: 16,
@@ -171,18 +191,40 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                           ],
                         ),
                       ),
-                    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
+                    )
+                        .animate()
+                        .fadeIn(duration: 400.ms)
+                        .slideY(begin: 0.1, end: 0),
                   ),
-                  
-                  // #7 — Note globale du restaurant
-                  _buildGlobalRating(isDark),
-
-                  // #25 — Bannières promotionnelles
                   _buildPromoBanners(isDark),
-                  _buildCategorySection('Nos Pizzas', MenuData.pizzas, 'Pizza', isDark),
-                  _buildCategorySection('Nos Tacos', MenuData.tacos, 'Tacos', isDark),
-                  _buildCategorySection('Nos Salades', MenuData.salades, 'Salades', isDark),
-                  _buildCategorySection('Nos Boissons', MenuData.boissons, 'Boissons', isDark),
+                  _buildCategorySection(
+                      localeProvider.localeCode == 'fr'
+                          ? 'Nos Pizzas'
+                          : 'Our Pizzas',
+                      MenuData.pizzas,
+                      'Pizza',
+                      isDark),
+                  _buildCategorySection(
+                      localeProvider.localeCode == 'fr'
+                          ? 'Nos Tacos'
+                          : 'Our Tacos',
+                      MenuData.tacos,
+                      'Tacos',
+                      isDark),
+                  _buildCategorySection(
+                      localeProvider.localeCode == 'fr'
+                          ? 'Nos Salades'
+                          : 'Our Salads',
+                      MenuData.salades,
+                      'Salades',
+                      isDark),
+                  _buildCategorySection(
+                      localeProvider.localeCode == 'fr'
+                          ? 'Nos Boissons'
+                          : 'Our Drinks',
+                      MenuData.boissons,
+                      'Boissons',
+                      isDark),
                   const SizedBox(height: 100),
                 ],
               ),
@@ -218,7 +260,10 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               : (isDark ? Colors.brown[800] : Colors.brown[600]),
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)]
+              ? [
+                  BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1), blurRadius: 4)
+                ]
               : null,
         ),
         child: Center(
@@ -235,7 +280,8 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     );
   }
 
-  Widget _buildCategorySection(String title, List<FoodItem> items, String category, bool isDark) {
+  Widget _buildCategorySection(
+      String title, List<FoodItem> items, String category, bool isDark) {
     return Container(
       key: _categoryKeys[category],
       color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
@@ -289,20 +335,22 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildFoodCard(BuildContext context, FoodItem foodItem, bool isDark) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
     return GestureDetector(
       onTap: () {
-        // #8 — Transition slide-up
         Navigator.push(
           context,
           PageRouteBuilder(
             pageBuilder: (context, animation, secondaryAnimation) =>
                 FoodDetailScreen(foodItem: foodItem),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            transitionsBuilder:
+                (context, animation, secondaryAnimation, child) {
               return SlideTransition(
                 position: Tween<Offset>(
                   begin: const Offset(0, 0.15),
                   end: Offset.zero,
-                ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+                ).animate(CurvedAnimation(
+                    parent: animation, curve: Curves.easeOutCubic)),
                 child: FadeTransition(opacity: animation, child: child),
               );
             },
@@ -329,7 +377,6 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
           children: [
             Stack(
               children: [
-                // Image avec Hero + Shimmer loading (#22)
                 Hero(
                   tag: 'food_image_${foodItem.id}',
                   child: ClipRRect(
@@ -342,15 +389,20 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                       width: double.infinity,
                       height: 200,
                       fit: BoxFit.cover,
-                      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                      frameBuilder:
+                          (context, child, frame, wasSynchronouslyLoaded) {
                         if (wasSynchronouslyLoaded) return child;
                         return AnimatedSwitcher(
                           duration: const Duration(milliseconds: 300),
                           child: frame != null
                               ? child
                               : Shimmer.fromColors(
-                                  baseColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
-                                  highlightColor: isDark ? Colors.grey[700]! : Colors.grey[100]!,
+                                  baseColor: isDark
+                                      ? Colors.grey[800]!
+                                      : Colors.grey[300]!,
+                                  highlightColor: isDark
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[100]!,
                                   child: Container(
                                     width: double.infinity,
                                     height: 200,
@@ -362,20 +414,20 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-
-                // Temps de préparation
                 Positioned(
                   top: 12,
                   left: 12,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.access_time, color: Colors.white, size: 14),
+                        const Icon(Icons.access_time,
+                            color: Colors.white, size: 14),
                         const SizedBox(width: 4),
                         Text(
                           '${foodItem.preparationTime} min',
@@ -389,14 +441,13 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                     ),
                   ),
                 ),
-
-                // Bouton favori
                 Positioned(
                   top: 12,
                   right: 12,
                   child: Consumer<FavoritesProvider>(
                     builder: (context, favoritesProvider, child) {
-                      final isFavorite = favoritesProvider.isFavorite(foodItem.id);
+                      final isFavorite =
+                          favoritesProvider.isFavorite(foodItem.id);
                       return GestureDetector(
                         onTap: () {
                           favoritesProvider.toggleFavorite(foodItem.id);
@@ -423,8 +474,6 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                     },
                   ),
                 ),
-
-                // Badges
                 if (foodItem.badges.isNotEmpty)
                   Positioned(
                     bottom: 12,
@@ -433,7 +482,8 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                       children: foodItem.badges.map((badge) {
                         return Container(
                           margin: const EdgeInsets.only(right: 6),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(12),
@@ -448,7 +498,6 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                   ),
               ],
             ),
-            
             Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
@@ -489,9 +538,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 10),
-                  
                   Text(
                     foodItem.description,
                     style: TextStyle(
@@ -503,13 +550,11 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  
                   const SizedBox(height: 12),
-                  
                   Row(
                     children: [
-                      Icon(Icons.local_fire_department, 
-                           color: Colors.orange[700], size: 16),
+                      Icon(Icons.local_fire_department,
+                          color: Colors.orange[700], size: 16),
                       const SizedBox(width: 4),
                       Text(
                         '${foodItem.calories} cal',
@@ -520,9 +565,7 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                       ),
                     ],
                   ),
-                  
                   const SizedBox(height: 16),
-                  
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -534,11 +577,11 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                           color: Colors.red[600],
                         ),
                       ),
-                      
                       Consumer<CartProvider>(
                         builder: (context, cartProvider, child) {
                           final isInCart = cartProvider.isInCart(foodItem.id);
-                          final quantity = cartProvider.getItemQuantity(foodItem.id);
+                          final quantity =
+                              cartProvider.getItemQuantity(foodItem.id);
                           return isInCart
                               ? Container(
                                   decoration: BoxDecoration(
@@ -549,9 +592,11 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                                     children: [
                                       IconButton(
                                         onPressed: () {
-                                          cartProvider.decreaseQuantity(foodItem.id);
+                                          cartProvider
+                                              .decreaseQuantity(foodItem.id);
                                         },
-                                        icon: const Icon(Icons.remove, color: Colors.white),
+                                        icon: const Icon(Icons.remove,
+                                            color: Colors.white),
                                         iconSize: 20,
                                         padding: const EdgeInsets.all(8),
                                         constraints: const BoxConstraints(
@@ -559,9 +604,9 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                                           minHeight: 36,
                                         ),
                                       ),
-                                      
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12),
                                         child: Text(
                                           quantity.toString(),
                                           style: const TextStyle(
@@ -571,12 +616,13 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                                           ),
                                         ),
                                       ),
-                                      
                                       IconButton(
                                         onPressed: () {
-                                          cartProvider.increaseQuantity(foodItem.id);
+                                          cartProvider
+                                              .increaseQuantity(foodItem.id);
                                         },
-                                        icon: const Icon(Icons.add, color: Colors.white),
+                                        icon: const Icon(Icons.add,
+                                            color: Colors.white),
                                         iconSize: 20,
                                         padding: const EdgeInsets.all(8),
                                         constraints: const BoxConstraints(
@@ -594,29 +640,32 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                                       SnackBar(
                                         content: Row(
                                           children: [
-                                            const Icon(Icons.check_circle, 
-                                                 color: Colors.white),
+                                            const Icon(Icons.check_circle,
+                                                color: Colors.white),
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                '${foodItem.name} ajouté au panier',
+                                                '${foodItem.name} ${localeProvider.translate('added_to_cart')}',
                                               ),
                                             ),
                                           ],
                                         ),
-                                        duration: const Duration(milliseconds: 1500),
+                                        duration:
+                                            const Duration(milliseconds: 1500),
                                         backgroundColor: Colors.green,
                                         behavior: SnackBarBehavior.floating,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(10),
+                                          borderRadius:
+                                              BorderRadius.circular(10),
                                         ),
                                       ),
                                     );
                                   },
-                                  icon: const Icon(Icons.add_shopping_cart, size: 18),
-                                  label: const Text(
-                                    'Ajouter',
-                                    style: TextStyle(
+                                  icon: const Icon(Icons.add_shopping_cart,
+                                      size: 18),
+                                  label: Text(
+                                    localeProvider.translate('add_to_cart'),
+                                    style: const TextStyle(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -647,99 +696,6 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
     );
   }
 
-  // #7 — Note globale du restaurant
-  Widget _buildGlobalRating(bool isDark) {
-    // Calculer la note moyenne globale
-    final allItems = MenuData.allItems;
-    final avgRating = allItems.fold(0.0, (sum, item) => sum + item.rating) / allItems.length;
-    final totalReviews = allItems.fold(0, (sum, item) => sum + item.reviewCount);
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isDark ? const Color(0xFF3E3E3E) : Colors.amber.withValues(alpha: 0.3),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.amber.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.amber.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.star_rounded, color: Colors.amber, size: 26),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        avgRating.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w800,
-                          color: isDark ? Colors.white : Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      ...List.generate(5, (index) {
-                        if (index < avgRating.floor()) {
-                          return const Icon(Icons.star, color: Colors.amber, size: 16);
-                        } else if (index < avgRating.ceil() && avgRating % 1 > 0.3) {
-                          return const Icon(Icons.star_half, color: Colors.amber, size: 16);
-                        }
-                        return Icon(Icons.star_border, color: Colors.grey[400], size: 16);
-                      }),
-                    ],
-                  ),
-                  Text(
-                    '$totalReviews avis clients',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[500] : Colors.grey[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.green.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                AppConstants.ratingLabel(avgRating),
-                style: const TextStyle(
-                  color: Colors.green,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.05, end: 0);
-  }
-
-  // #25 — Bannières promotionnelles
   Widget _buildPromoBanners(bool isDark) {
     final banners = [
       {
@@ -780,7 +736,8 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: (banner['gradient'] as List<Color>)[0].withValues(alpha: 0.3),
+                  color: (banner['gradient'] as List<Color>)[0]
+                      .withValues(alpha: 0.3),
                   blurRadius: 12,
                   offset: const Offset(0, 6),
                 ),
@@ -833,7 +790,9 @@ class _MenuScreenState extends State<MenuScreen> with SingleTickerProviderStateM
                 ],
               ),
             ),
-          ).animate().fadeIn(duration: 500.ms, delay: (200 * index).ms)
+          )
+              .animate()
+              .fadeIn(duration: 500.ms, delay: (200 * index).ms)
               .slideX(begin: 0.1, end: 0, duration: 400.ms);
         },
       ),

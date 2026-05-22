@@ -2,14 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:share_plus/share_plus.dart';
 import '../models/food_item.dart';
 import '../providers/cart_provider.dart';
 import '../providers/favorites_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/review_provider.dart';
+import '../providers/locale_provider.dart';
 
-/// Page de détails d'un plat avec Hero animation (Amélioration #8)
 class FoodDetailScreen extends StatefulWidget {
   final FoodItem foodItem;
 
@@ -29,11 +28,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     final quantity = cartProvider.getItemQuantity(foodItem.id);
     final isFavorite = favoritesProvider.isFavorite(foodItem.id);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // App Bar avec image Hero
           SliverAppBar(
             expandedHeight: 350,
             pinned: true,
@@ -49,7 +48,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                       foodItem.image,
                       fit: BoxFit.cover,
                     ),
-                    // Gradient overlay
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -62,7 +60,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                         ),
                       ),
                     ),
-                    // Badges en haut
                     Positioned(
                       top: MediaQuery.of(context).padding.top + 60,
                       right: 16,
@@ -89,7 +86,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                         }).toList(),
                       ),
                     ),
-                    // Nom et prix en bas
                     Positioned(
                       bottom: 20,
                       left: 20,
@@ -148,20 +144,38 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               ),
             ),
             actions: [
-              // Bouton partager (#9)
               IconButton(
-                onPressed: () {
-                  Share.share(
-                    '🍽️ ${foodItem.name}\n'
-                    '💰 ${foodItem.formattedPrice}\n'
-                    '⭐ ${foodItem.rating}/5\n'
-                    '📝 ${foodItem.description}\n\n'
-                    'Commandez sur BOUAOUIN ! 🚀',
-                  );
+                onPressed: () async {
+                  final String shareText = '🍽️ ${foodItem.name}\n'
+                      '💰 ${foodItem.formattedPrice}\n'
+                      '⭐ ${foodItem.rating}/5\n'
+                      '📝 ${foodItem.description}\n\n'
+                      '${localeProvider.translate('share_order_call')} 🚀';
+
+                  await Clipboard.setData(ClipboardData(text: shareText));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.copy_rounded, color: Colors.white),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(localeProvider
+                                  .translate('share_copied_clipboard')),
+                            ),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                      ),
+                    );
+                  }
                 },
                 icon: const Icon(Icons.share, color: Colors.white),
               ),
-              // Bouton favori
               IconButton(
                 onPressed: () {
                   HapticFeedback.lightImpact();
@@ -187,15 +201,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
               ),
             ],
           ),
-
-          // Contenu
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Infos rapides
                   Row(
                     children: [
                       _buildInfoChip(
@@ -220,10 +231,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Description
                   Text(
                     'Description',
                     style: TextStyle(
@@ -242,10 +250,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     ),
                     textAlign: TextAlign.justify,
                   ),
-
                   const SizedBox(height: 24),
-
-                  // Ingrédients
                   if (foodItem.ingredients.isNotEmpty) ...[
                     Text(
                       'Ingrédients',
@@ -264,9 +269,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 8),
                           decoration: BoxDecoration(
-                            color: isDark
-                                ? Colors.brown[800]
-                                : Colors.brown[50],
+                            color:
+                                isDark ? Colors.brown[800] : Colors.brown[50],
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isDark
@@ -289,13 +293,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                     ),
                     const SizedBox(height: 24),
                   ],
-
-                  // Section avis clients
                   Consumer<ReviewProvider>(
                     builder: (context, reviewProvider, _) {
                       final reviews = reviewProvider.getReviews(foodItem.id);
-                      final avgRating = reviewProvider.getAverageRating(foodItem.id);
-                      
+                      final avgRating =
+                          reviewProvider.getAverageRating(foodItem.id);
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -310,7 +313,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                         style: TextStyle(
                                           fontSize: 20,
                                           fontWeight: FontWeight.bold,
-                                          color: isDark ? Colors.white : Colors.black87,
+                                          color: isDark
+                                              ? Colors.white
+                                              : Colors.black87,
                                         ),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -318,22 +323,28 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                                     const SizedBox(width: 8),
                                     if (reviews.isNotEmpty)
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: Colors.amber.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(8),
+                                          color: Colors.amber
+                                              .withValues(alpha: 0.15),
+                                          borderRadius:
+                                              BorderRadius.circular(8),
                                         ),
                                         child: Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.star, color: Colors.amber, size: 14),
+                                            const Icon(Icons.star,
+                                                color: Colors.amber, size: 14),
                                             const SizedBox(width: 2),
                                             Text(
                                               '${avgRating.toStringAsFixed(1)} (${reviews.length})',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.amber : Colors.amber[700],
+                                                color: isDark
+                                                    ? Colors.amber
+                                                    : Colors.amber[700],
                                               ),
                                             ),
                                           ],
@@ -344,8 +355,10 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                               ),
                               const SizedBox(width: 4),
                               IconButton(
-                                onPressed: () => _showAddReviewDialog(context, foodItem.id, isDark),
-                                icon: Icon(Icons.rate_review, size: 22, color: Colors.brown[700]),
+                                onPressed: () => _showAddReviewDialog(
+                                    context, foodItem.id, isDark),
+                                icon: Icon(Icons.rate_review,
+                                    size: 22, color: Colors.brown[700]),
                                 tooltip: 'Donner un avis',
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -358,50 +371,54 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(24),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF1E1E1E) : Colors.grey[50],
+                                color: isDark
+                                    ? const Color(0xFF1E1E1E)
+                                    : Colors.grey[50],
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: isDark ? const Color(0xFF3E3E3E) : Colors.grey[200]!,
+                                  color: isDark
+                                      ? const Color(0xFF3E3E3E)
+                                      : Colors.grey[200]!,
                                 ),
                               ),
                               child: Column(
                                 children: [
-                                  Icon(Icons.rate_review_outlined, size: 40, color: Colors.grey[400]),
+                                  Icon(Icons.rate_review_outlined,
+                                      size: 40, color: Colors.grey[400]),
                                   const SizedBox(height: 8),
                                   Text(
                                     'Aucun avis pour le moment',
-                                    style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                                    style: TextStyle(
+                                        color: Colors.grey[500], fontSize: 14),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Soyez le premier à donner votre avis !',
-                                    style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                                    style: TextStyle(
+                                        color: Colors.grey[400], fontSize: 12),
                                   ),
                                 ],
                               ),
                             )
                           else
                             ...reviews.map((review) => _buildReviewCard(
-                              review.userName,
-                              review.rating,
-                              review.comment,
-                              review.formattedDate,
-                              isDark,
-                            )),
+                                  review.userName,
+                                  review.rating,
+                                  review.comment,
+                                  review.formattedDate,
+                                  isDark,
+                                )),
                         ],
                       );
                     },
                   ),
-
-                  const SizedBox(height: 100), // Espace pour le bottom bar
+                  const SizedBox(height: 100),
                 ],
               ),
             ),
           ),
         ],
       ),
-
-      // Bottom Bar - Ajouter au panier (amélioré)
       bottomNavigationBar: Container(
         padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
         decoration: BoxDecoration(
@@ -420,7 +437,6 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
         child: SafeArea(
           child: Row(
             children: [
-              // Prix avec badge
               Expanded(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -450,11 +466,13 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                           if (isInCart) ...[
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
                                 color: Colors.green.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                                border: Border.all(
+                                    color: Colors.green.withValues(alpha: 0.3)),
                               ),
                               child: Text(
                                 '×$quantity',
@@ -472,10 +490,7 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(width: 12),
-
-              // Bouton
               isInCart
                   ? Container(
                       decoration: BoxDecoration(
@@ -496,13 +511,11 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                           IconButton(
                             onPressed: () =>
                                 cartProvider.decreaseQuantity(foodItem.id),
-                            icon:
-                                const Icon(Icons.remove, color: Colors.white),
+                            icon: const Icon(Icons.remove, color: Colors.white),
                             iconSize: 22,
                           ),
                           Container(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
                             child: Text(
                               quantity.toString(),
                               style: const TextStyle(
@@ -574,12 +587,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
             ],
           ),
         ),
-      ).animate().slideY(begin: 1, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
+      ).animate().slideY(
+          begin: 1, end: 0, duration: 300.ms, curve: Curves.easeOutCubic),
     );
   }
 
-  Widget _buildInfoChip(
-      IconData icon, String label, Color color, bool isDark) {
+  Widget _buildInfoChip(IconData icon, String label, Color color, bool isDark) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -671,7 +684,9 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
                   return Icon(
                     index < rating.floor()
                         ? Icons.star
-                        : (index < rating ? Icons.star_half : Icons.star_border),
+                        : (index < rating
+                            ? Icons.star_half
+                            : Icons.star_border),
                     color: Colors.amber,
                     size: 14,
                   );
@@ -693,11 +708,12 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
     );
   }
 
-  void _showAddReviewDialog(BuildContext context, String foodItemId, bool isDark) {
+  void _showAddReviewDialog(
+      BuildContext context, String foodItemId, bool isDark) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final reviewProvider = Provider.of<ReviewProvider>(context, listen: false);
     final user = authProvider.user;
-    
+
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -710,17 +726,18 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           ),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
     }
 
     final userId = user.uid;
-    final userName = authProvider.userProfile.name.isNotEmpty 
-        ? authProvider.userProfile.name 
+    final userName = authProvider.userProfile.name.isNotEmpty
+        ? authProvider.userProfile.name
         : (user.displayName ?? 'Utilisateur');
-    
+
     if (reviewProvider.hasUserReviewed(foodItemId, userId)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -733,7 +750,8 @@ class _FoodDetailScreenState extends State<FoodDetailScreen> {
           ),
           backgroundColor: Colors.blue,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
       return;
@@ -810,7 +828,8 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
           children: [
             Center(
               child: Container(
-                width: 40, height: 4,
+                width: 40,
+                height: 4,
                 decoration: BoxDecoration(
                   color: Colors.grey[400],
                   borderRadius: BorderRadius.circular(2),
@@ -832,8 +851,6 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
               style: TextStyle(fontSize: 14, color: Colors.grey[500]),
             ),
             const SizedBox(height: 24),
-
-            // Étoiles
             Center(
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -844,7 +861,9 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 6),
                       child: Icon(
-                        index < _selectedRating ? Icons.star : Icons.star_border,
+                        index < _selectedRating
+                            ? Icons.star
+                            : Icons.star_border,
                         color: Colors.amber,
                         size: 40,
                       ),
@@ -856,11 +875,15 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
             const SizedBox(height: 8),
             Center(
               child: Text(
-                _selectedRating >= 5 ? 'Excellent !' 
-                    : _selectedRating >= 4 ? 'Très bien !'
-                    : _selectedRating >= 3 ? 'Bien'
-                    : _selectedRating >= 2 ? 'Moyen'
-                    : 'Pas terrible',
+                _selectedRating >= 5
+                    ? 'Excellent !'
+                    : _selectedRating >= 4
+                        ? 'Très bien !'
+                        : _selectedRating >= 3
+                            ? 'Bien'
+                            : _selectedRating >= 2
+                                ? 'Moyen'
+                                : 'Pas terrible',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -869,8 +892,6 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Commentaire
             TextField(
               controller: _commentController,
               maxLines: 3,
@@ -886,66 +907,68 @@ class _AddReviewBottomSheetState extends State<_AddReviewBottomSheet> {
               ),
             ),
             const SizedBox(height: 20),
-
-            // Bouton envoyer
             SizedBox(
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: _isSubmitting ? null : () async {
-                  if (_commentController.text.trim().isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Veuillez écrire un commentaire'),
-                        backgroundColor: Colors.orange,
-                      ),
-                    );
-                    return;
-                  }
+                onPressed: _isSubmitting
+                    ? null
+                    : () async {
+                        if (_commentController.text.trim().isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Veuillez écrire un commentaire'),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                          return;
+                        }
 
-                  setState(() => _isSubmitting = true);
+                        setState(() => _isSubmitting = true);
 
-                  // Simuler une petite latence réseau pour l'UX (Amélioration #145: loader de soumission)
-                  await Future.delayed(const Duration(milliseconds: 800));
+                        await Future.delayed(const Duration(milliseconds: 800));
 
-                  await widget.reviewProvider.addReview(
-                    foodItemId: widget.foodItemId,
-                    userId: widget.userId,
-                    userName: widget.userName,
-                    rating: _selectedRating,
-                    comment: _commentController.text.trim(),
-                  );
-                  
-                  if (!context.mounted) return;
-                  setState(() => _isSubmitting = false);
-                  Navigator.pop(context);
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Row(
-                        children: [
-                          Icon(Icons.check_circle, color: Colors.white),
-                          SizedBox(width: 8),
-                          Text('Merci pour votre avis !'),
-                        ],
-                      ),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  );
-                },
-                icon: _isSubmitting 
+                        await widget.reviewProvider.addReview(
+                          foodItemId: widget.foodItemId,
+                          userId: widget.userId,
+                          userName: widget.userName,
+                          rating: _selectedRating,
+                          comment: _commentController.text.trim(),
+                        );
+
+                        if (!context.mounted) return;
+                        setState(() => _isSubmitting = false);
+                        Navigator.pop(context);
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Row(
+                              children: [
+                                Icon(Icons.check_circle, color: Colors.white),
+                                SizedBox(width: 8),
+                                Text('Merci pour votre avis !'),
+                              ],
+                            ),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                        );
+                      },
+                icon: _isSubmitting
                     ? const SizedBox(
-                        width: 18, height: 18,
-                        child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
                       )
                     : const Icon(Icons.send, size: 18),
                 label: Text(
                   _isSubmitting ? 'Publication...' : 'Publier l\'avis',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.brown[700],

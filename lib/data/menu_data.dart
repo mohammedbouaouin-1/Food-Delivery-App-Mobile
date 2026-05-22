@@ -1,7 +1,5 @@
 import '../models/food_item.dart';
 
-/// Données du menu - séparées de l'UI pour faciliter la maintenance
-/// et une future migration vers Firestore
 class MenuData {
   static final List<FoodItem> pizzas = [
     const FoodItem(
@@ -47,7 +45,12 @@ class MenuData {
       reviewCount: 156,
       calories: 250,
       isVegetarian: true,
-      ingredients: ['Sauce tomate', 'Mozzarella', 'Basilic frais', 'Huile d\'olive'],
+      ingredients: [
+        'Sauce tomate',
+        'Mozzarella',
+        'Basilic frais',
+        'Huile d\'olive'
+      ],
     ),
     const FoodItem(
       id: '4',
@@ -107,7 +110,12 @@ class MenuData {
       reviewCount: 98,
       calories: 480,
       isSpicy: true,
-      ingredients: ['Viande hachée épicée', 'Frites', 'Fromage', 'Sauce piquante'],
+      ingredients: [
+        'Viande hachée épicée',
+        'Frites',
+        'Fromage',
+        'Sauce piquante'
+      ],
     ),
     const FoodItem(
       id: '8',
@@ -122,7 +130,13 @@ class MenuData {
       reviewCount: 165,
       calories: 520,
       isSpicy: true,
-      ingredients: ['Poulet', 'Viande hachée', 'Frites', 'Fromage', 'Sauce mixte'],
+      ingredients: [
+        'Poulet',
+        'Viande hachée',
+        'Frites',
+        'Fromage',
+        'Sauce mixte'
+      ],
     ),
   ];
 
@@ -283,7 +297,6 @@ class MenuData {
     ),
   ];
 
-  /// Cache pour tous les articles du menu afin de ne pas recréer la liste à chaque accès
   static final List<FoodItem> _cachedAllItems = [
     ...pizzas,
     ...tacos,
@@ -291,10 +304,8 @@ class MenuData {
     ...boissons,
   ];
 
-  /// Tous les articles du menu
   static List<FoodItem> get allItems => _cachedAllItems;
 
-  /// Catégories disponibles
   static const List<Map<String, String>> categories = [
     {'label': '🍕 Pizza', 'key': 'Pizza'},
     {'label': '🌮 Tacos', 'key': 'Tacos'},
@@ -302,7 +313,6 @@ class MenuData {
     {'label': '🥤 Boissons', 'key': 'Boissons'},
   ];
 
-  /// Obtenir les items par catégorie
   static List<FoodItem> getItemsByCategory(String category) {
     switch (category) {
       case 'Pizza':

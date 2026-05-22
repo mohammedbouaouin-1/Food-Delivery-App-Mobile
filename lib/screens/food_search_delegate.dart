@@ -4,7 +4,6 @@ import '../models/food_item.dart';
 import '../providers/cart_provider.dart';
 import 'food_detail_screen.dart';
 
-/// Recherche redesignée avec grille
 class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
   final List<FoodItem> items;
   final CartProvider cartProvider;
@@ -23,7 +22,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
     if (term.trim().isEmpty) return;
     _searchHistory.remove(term);
     _searchHistory.insert(0, term);
-    if (_searchHistory.length > 8) _searchHistory = _searchHistory.sublist(0, 8);
+    if (_searchHistory.length > 8)
+      _searchHistory = _searchHistory.sublist(0, 8);
     final prefs = await SharedPreferences.getInstance();
     await prefs.setStringList('search_history', _searchHistory);
   }
@@ -87,7 +87,6 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (query.isEmpty) {
-      // Afficher historique + populaires
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -106,9 +105,10 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
                 TextButton(
                   onPressed: () {
                     _clearHistory();
-                    query = query; // force rebuild
+                    query = query;
                   },
-                  child: Text('Effacer', style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+                  child: Text('Effacer',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 13)),
                 ),
               ],
             ),
@@ -118,12 +118,15 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
               runSpacing: 8,
               children: _searchHistory.map((term) {
                 return ActionChip(
-                  avatar: Icon(Icons.history, size: 16, color: Colors.grey[500]),
+                  avatar:
+                      Icon(Icons.history, size: 16, color: Colors.grey[500]),
                   label: Text(term, style: const TextStyle(fontSize: 13)),
                   onPressed: () => query = term,
-                  backgroundColor: isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
+                  backgroundColor:
+                      isDark ? const Color(0xFF2A2A2A) : Colors.grey[100],
                   side: BorderSide.none,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
                 );
               }).toList(),
             ),
@@ -141,7 +144,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
           ...items.take(5).map((item) => ListTile(
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(item.image, width: 50, height: 50, fit: BoxFit.cover),
+                  child: Image.asset(item.image,
+                      width: 50, height: 50, fit: BoxFit.cover),
                 ),
                 title: Text(
                   item.name,
@@ -152,15 +156,18 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
                 ),
                 subtitle: Text(
                   item.formattedPrice,
-                  style: TextStyle(color: Colors.red[600], fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.red[600], fontWeight: FontWeight.bold),
                 ),
-                trailing: Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey[400]),
+                trailing: Icon(Icons.arrow_forward_ios,
+                    size: 14, color: Colors.grey[400]),
                 contentPadding: EdgeInsets.zero,
                 onTap: () {
                   close(context, null);
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => FoodDetailScreen(foodItem: item)),
+                    MaterialPageRoute(
+                        builder: (context) => FoodDetailScreen(foodItem: item)),
                   );
                 },
               )),
@@ -182,8 +189,8 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off, size: 80,
-                color: isDark ? Colors.grey[600] : Colors.grey[400]),
+            Icon(Icons.search_off,
+                size: 80, color: isDark ? Colors.grey[600] : Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               'Aucun résultat pour "$query"',
@@ -237,7 +244,6 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image
                 Expanded(
                   flex: 3,
                   child: ClipRRect(
@@ -287,7 +293,6 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
                     ),
                   ),
                 ),
-                // Infos
                 Expanded(
                   flex: 2,
                   child: Padding(
@@ -320,14 +325,15 @@ class FoodSearchDelegate extends SearchDelegate<FoodItem?> {
                             GestureDetector(
                               onTap: () {
                                 if (!isInCart) {
-                                    cartProvider.addItem(item);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('${item.name} ajouté ✓'),
-                                        backgroundColor: Colors.green,
-                                        duration: const Duration(milliseconds: 1000),
-                                      ),
-                                    );
+                                  cartProvider.addItem(item);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('${item.name} ajouté ✓'),
+                                      backgroundColor: Colors.green,
+                                      duration:
+                                          const Duration(milliseconds: 1000),
+                                    ),
+                                  );
                                 }
                               },
                               child: Container(

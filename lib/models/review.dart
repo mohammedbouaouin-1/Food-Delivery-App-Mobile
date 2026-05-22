@@ -61,7 +61,6 @@ class Review {
     );
   }
 
-  /// Format relatif de la date
   String get formattedDate {
     final now = DateTime.now();
     final diff = now.difference(dateTime);
@@ -69,8 +68,10 @@ class Review {
     if (diff.inMinutes < 1) return 'À l\'instant';
     if (diff.inMinutes < 60) return 'Il y a ${diff.inMinutes} min';
     if (diff.inHours < 24) return 'Il y a ${diff.inHours}h';
-    if (diff.inDays < 7) return 'Il y a ${diff.inDays} jour${diff.inDays > 1 ? 's' : ''}';
-    if (diff.inDays < 30) return 'Il y a ${(diff.inDays / 7).floor()} semaine${(diff.inDays / 7).floor() > 1 ? 's' : ''}';
+    if (diff.inDays < 7)
+      return 'Il y a ${diff.inDays} jour${diff.inDays > 1 ? 's' : ''}';
+    if (diff.inDays < 30)
+      return 'Il y a ${(diff.inDays / 7).floor()} semaine${(diff.inDays / 7).floor() > 1 ? 's' : ''}';
     return 'Il y a ${(diff.inDays / 30).floor()} mois';
   }
 
@@ -89,7 +90,8 @@ class Review {
 
   @override
   int get hashCode {
-    return Object.hash(id, foodItemId, userId, userName, rating, comment, dateTime);
+    return Object.hash(
+        id, foodItemId, userId, userName, rating, comment, dateTime);
   }
 
   @override

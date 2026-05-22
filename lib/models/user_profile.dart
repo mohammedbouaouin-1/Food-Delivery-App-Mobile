@@ -23,10 +23,11 @@ class UserProfile {
     var addrList = <Address>[];
     if (json['addresses'] != null) {
       addrList = (json['addresses'] as List)
-          .map((item) => Address.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map((item) =>
+              Address.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList();
     }
-    
+
     var favList = <String>[];
     if (json['favoriteItems'] != null) {
       favList = List<String>.from(json['favoriteItems'] as List);
@@ -90,7 +91,8 @@ class UserProfile {
 
   @override
   int get hashCode {
-    return Object.hash(name, email, phone, address, photoUrl, addresses, favoriteItems);
+    return Object.hash(
+        name, email, phone, address, photoUrl, addresses, favoriteItems);
   }
 
   @override

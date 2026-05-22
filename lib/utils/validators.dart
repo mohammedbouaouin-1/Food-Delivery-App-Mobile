@@ -49,16 +49,13 @@ class Validators {
     return null;
   }
 
-  // Password strength: returns a score between 0.0 and 1.0
   static double passwordStrength(String password) {
     if (password.isEmpty) return 0.0;
     double strength = 0.0;
 
-    // Length contribution
     if (password.length >= 6) strength += 0.2;
     if (password.length >= 10) strength += 0.2;
 
-    // Characters contribution
     if (password.contains(RegExp(r'[A-Z]'))) strength += 0.2;
     if (password.contains(RegExp(r'[a-z]'))) strength += 0.1;
     if (password.contains(RegExp(r'[0-9]'))) strength += 0.2;

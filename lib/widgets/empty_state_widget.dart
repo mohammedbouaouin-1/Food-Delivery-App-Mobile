@@ -66,7 +66,8 @@ class EmptyStateWidget extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.brown[700],
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -74,7 +75,8 @@ class EmptyStateWidget extends StatelessWidget {
                 ),
                 child: Text(
                   actionLabel!,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 14),
                 ),
               ).animate().fadeIn(duration: 400.ms, delay: 300.ms).scale(),
             ],

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth/login_screen.dart';
 
-/// Onboarding pour les nouveaux utilisateurs (#20)
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -71,7 +70,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Pages
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -82,8 +80,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               return _buildPage(_pages[index]);
             },
           ),
-
-          // Skip button
           Positioned(
             top: MediaQuery.of(context).padding.top + 16,
             right: 16,
@@ -100,15 +96,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   )
                 : const SizedBox.shrink(),
           ),
-
-          // Bottom controls
           Positioned(
             bottom: 50,
             left: 0,
             right: 0,
             child: Column(
               children: [
-                // Dots indicator
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
@@ -127,10 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 40),
-
-                // Button
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40),
                   child: SizedBox(
@@ -183,8 +173,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Spacer(flex: 2),
-
-              // Icon
               Container(
                 width: 160,
                 height: 160,
@@ -208,10 +196,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                 ),
               ),
-
               const Spacer(flex: 1),
-
-              // Title
               Text(
                 page.title,
                 style: const TextStyle(
@@ -222,10 +207,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const SizedBox(height: 20),
-
-              // Description
               Text(
                 page.description,
                 style: TextStyle(
@@ -235,7 +217,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 ),
                 textAlign: TextAlign.center,
               ),
-
               const Spacer(flex: 3),
             ],
           ),

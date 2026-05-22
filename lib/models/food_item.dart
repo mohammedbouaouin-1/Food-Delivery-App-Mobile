@@ -99,7 +99,8 @@ class FoodItem {
     );
   }
 
-  String get formattedPrice => '${price.toStringAsFixed(2)} ${AppConstants.currency}';
+  String get formattedPrice =>
+      '${price.toStringAsFixed(2)} ${AppConstants.currency}';
 
   List<String> get badges {
     List<String> result = [];
