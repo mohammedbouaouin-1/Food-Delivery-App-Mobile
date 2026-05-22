@@ -1,2 +1,34 @@
-# Food-Delivery-App-Mobile
-Food Delivery App developed with Flutter using MVC architecture, Provider state management, Firebase Authentication, SharedPreferences, real-time order tracking, loyalty system, multilingual support, and responsive UI/UX.
+# Food Delivery App
+
+A complete Food Delivery mobile application built with Flutter and Firebase.
+
+## Features
+
+- Firebase Authentication
+- Google Sign-In
+- Cart Management
+- Order Tracking
+- Loyalty Rewards
+- Favorites System
+- Reviews & Ratings
+- Dark/Light Theme
+- English & French Localization
+
+## Tech Stack
+
+- Flutter
+- Dart
+- Firebase Authentication
+- Provider
+- SharedPreferences
+
+## Getting Started
+
+```bash
+flutter pub get
+flutter run
+```
+
+## Author
+
+Mohammed Bouaouin
